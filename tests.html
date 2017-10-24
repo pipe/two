@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Hello, world!</title>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css" integrity="sha384-PsH8R72JQ3SOdhVi3uxftmaW6Vc51MKb0q5P2rRUpPvrszuE4W1povHYgTpBfshb" crossorigin="anonymous">
+</head>
+<body>
+<h1 id="title" class="text-center">Unrupt Browser Test Page</h1>
+<h3 id="useragent"></h3>
+<!-- Optional JavaScript -->
+<!-- jQuery first, then Popper.js, then Bootstrap JS -->
+<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.3/umd/popper.min.js" integrity="sha384-vFJXuSJphROIrBnz7yo7oB41mKfc8JzQZiCq4NCceLEaO4IHwicKwpJf9c9IpFgh" crossorigin="anonymous"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/js/bootstrap.min.js" integrity="sha384-alpBpkh1PFOepccYVYDB4do5UnbKysX5WZXm3XxPqe5iKTfUKjNkCk9SaVuEZflJ" crossorigin="anonymous"></script>
+<div class="card">
+    <h4 class="card-header">Tests for browser features</h4>
+    <div class="card-body">
+        <h4 class="card-title">Test for features we need</h4>
+        <ul class="list-group card-text">
+            <li class="list-group-item d-flex justify-content-between align-items-center">Has PeerConnection<span
+                    id="hasPeerConnection" class="badge badge-primary badge-pill">?</span></li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">Has AudioContext<span
+                    id="hasAudioContext" class="badge badge-primary badge-pill">?</span></li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">Has generateCertificate <span
+                    id="hasGenerateCertificate" class="badge badge-primary badge-pill">?</span></li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">Has AudioProcessingNode<span
+                    id="hasAudioProcessing" class="badge badge-primary badge-pill">?</span></li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">Has WebRTCDataChannel<span
+                    id="hasWebRTCDataChannel" class="badge badge-primary badge-pill">?</span></li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">Has GetUserMedia<span
+                    id="hasGetUserMedia" class="badge badge-primary badge-pill">?</span></li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">Has
+                MediaStreamDestination<span id="hasMediaStreamDestination"
+                                            class="badge badge-primary badge-pill">?</span></li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">Has MediaStreamSource<span
+                    id="hasMediaStreamSource" class="badge badge-primary badge-pill">?</span></li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">Has Sha265<span id="hasSha265"
+                                                                                                          class="badge badge-primary badge-pill">?</span>
+            </li>
+        </ul>
+
+    </div>
+</div>
+<div class="card">
+    <h4 class="card-header">Caller/Callee test</h4>
+    <div class="card-body">
+        <button id="action" type="button" class="btn btn-primary"></button>
+    </div>
+<script>
+    var ac = null;
+
+
+    function setTag(tag,val){
+        if (val) {
+            if (val.name){
+                tag.text(val.name);
+            } else {
+                tag.text("Yes");
+            }
+        } else {
+            tag.text("No");
+        }
+    }
+    function hasGetUserMedia(){
+        var tag = $("#hasGetUserMedia");
+        var val = false;
+        if (navigator.mediaDevices){
+            if (navigator.mediaDevices.getUserMedia){
+                val = {name:"mediaDevices.getUserMedia"};
+            }
+        } else {
+            if (navigator.getUserMedia){
+                val = {name:".getUserMedia"};
+            }
+        }
+        setTag(tag,val);
+    }
+
+    function hasPeerConnection(){
+        var tag = $("#hasPeerConnection");
+        var val = (window.RTCPeerConnection || false)  ;
+        setTag(tag,val);
+    }
+    function hasAudioContext(){
+        var tag = $("#hasAudioContext");
+        var val =  (window.AudioContext)|| (window.webkitAudioContext) || false;
+        setTag(tag,val);
+    }
+    function hasGenerateCertificate(){
+        var tag = $("#hasGenerateCertificate");
+        var val =  (window.RTCPeerConnection) && (window.RTCPeerConnection.generateCertificate);
+        setTag(tag,val);
+    }
+    function hasAudioProcessing(){
+        var tag = $("#hasAudioProcessing");
+        var val =  (window.AudioContext) || false;
+        if (val) {
+            ac = new AudioContext();
+        } else if (window.webkitAudioContext){
+            ac = new webkitAudioContext();
+        }
+        if (ac != null){
+            val =  ac.createScriptProcessor || window.AudioWorkletNode;
+        }
+        setTag(tag,val);
+    }
+    function hasMediaStreamSource(){
+        var tag = $("#hasMediaStreamSource");
+        var val = false;
+        if (ac != null){
+            val = ac.createMediaStreamSource;
+        }
+        setTag(tag,val);
+    }
+    function hasMediaStreamDestination(){
+        var tag = $("#hasMediaStreamDestination");
+        var val = false;
+        if (ac != null){
+            val = ac.createMediaStreamDestination;
+        }
+        setTag(tag,val);
+    }
+    function hasWebRTCDataChannel(){
+        var tag = $("#hasWebRTCDataChannel");
+        var val =  false ;
+        if (window.RTCPeerConnection){
+            var dc = new RTCPeerConnection();
+            val = dc.createDataChannel || false;
+        }
+        setTag(tag,val);
+    }
+    function hasSha265(){
+        var tag = $("#hasSha265");
+        var val = (window.crypto) || crypto.subtle || crypto.subtle.digest || false;
+        if (val) {
+            var method ="SHA-256";
+            var buffer = new TextEncoder("utf-8").encode(method);
+            crypto.subtle.digest(method, buffer).then(function (hash) {
+                setTag(tag,{name:method});
+            }).catch(function(why) { setTag(tag,{name:why})});
+        } else {
+            setTag(tag,val);
+        }
+    }
+    function setAct() {
+        var cid = $.getUrlVar("unruptId");
+        var mid = localStorage['unruptId'];
+        var act = $("#action");
+        if (!mid) {
+            var array = new Uint32Array(8);
+            window.crypto.getRandomValues(array);
+            var hexCodes = [];
+            for (var i = 0; i < array.length; i ++ ){
+                // Using getUint32 reduces the number of iterations needed (we process 4 bytes each time)
+                var value = array[i];
+                // toString(16) will give the hex representation of the number without padding
+                var stringValue = value.toString(16)
+                // We use concatenation and slice for padding
+                var padding = '00000000'
+                var paddedValue = (padding + stringValue).slice(-padding.length)
+                hexCodes.push(paddedValue);
+            }
+            mid = hexCodes.join("").toLowerCase();
+            console.log("mid ="+mid);
+            localStorage['unruptId'] = mid;
+        }
+        if (cid == null){
+            act.text("make shareable page");
+            act.click(function () {
+                document.location = "tests.html?"+"unruptId="+mid;
+            });
+        } else if (mid === cid) {
+            act.text("please share this page as a link");
+        } else {
+            act.text("accept call");
+            act.click(function () {
+
+            });
+        }
+    }
+    $.extend({
+        getUrlVars: function(){
+            var vars = [], hash;
+            var hashes = window.location.href.slice(window.location.href.indexOf('?') + 1).split('&');
+            for(var i = 0; i < hashes.length; i++)
+            {
+                hash = hashes[i].split('=');
+                vars.push(hash[0]);
+                vars[hash[0]] = hash[1];
+            }
+            return vars;
+        },
+        getUrlVar: function(name){
+            return $.getUrlVars()[name];
+        }
+    });
+
+    //Second call with this:
+    // Get object of URL parameters
+    //var allVars = $.getUrlVars();
+
+    // Getting URL var by its name
+    // var byName = $.getUrlVar('name');
+    $( document ).ready(function() {
+        $("#useragent").text(navigator.userAgent);
+        hasPeerConnection();
+        hasAudioContext();
+        hasGetUserMedia();
+        hasGenerateCertificate();
+        hasAudioProcessing();
+        hasWebRTCDataChannel();
+        hasMediaStreamSource();
+        hasMediaStreamDestination();
+        hasSha265();
+        setAct();
+    });
+</script>
+</body>
+</html>
