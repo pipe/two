@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Hello, world!</title>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css" integrity="sha384-PsH8R72JQ3SOdhVi3uxftmaW6Vc51MKb0q5P2rRUpPvrszuE4W1povHYgTpBfshb" crossorigin="anonymous">
+</head>
+<body>
+<h1 id="title" class="text-center">Unrupt Browser Test Page</h1>
+<h3 id="useragent"></h3>
+<!-- Optional JavaScript -->
+<!-- jQuery first, then Popper.js, then Bootstrap JS -->
+<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.3/umd/popper.min.js" integrity="sha384-vFJXuSJphROIrBnz7yo7oB41mKfc8JzQZiCq4NCceLEaO4IHwicKwpJf9c9IpFgh" crossorigin="anonymous"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/js/bootstrap.min.js" integrity="sha384-alpBpkh1PFOepccYVYDB4do5UnbKysX5WZXm3XxPqe5iKTfUKjNkCk9SaVuEZflJ" crossorigin="anonymous"></script>
+<div class="card">
+    <h4 class="card-header">Call</h4>
+    <div class="card-body">
+        <button id="action" type="button" class="btn btn-primary"></button>
+    </div>
+<script>
+
+    var configuration = {
+        "iceServers": [
+            {urls: "stun:146.148.121.175:3478"},
+            {urls: "turn:146.148.121.175:3478?transport=udp", 'credential': 'nexus5x', 'username': 'smartphone'},
+        ],
+        "bundlePolicy":"max-bundle","iceCandidatePoolSize":1
+    };
+
+    var pc; // actual peer connection to our friend
+    var socket; // used to set up connection with our peer.
+    var mid;
+    var fid;
+    var ac;
+    var initiator;
+    var lcandyStash = [];
+    var rcandyStash = [];
+
+    // message stuff - used to create direct connection to peer
+
+    function messageDeal(event){
+        console.log("message is " + event.data);
+        var data = JSON.parse(event.data);
+        console.log("data is " + JSON.stringify(data));
+        if (data.to != mid){
+            alert("message mixup");
+        }
+        switch (data.type) {
+            case "offer":
+                if (fid == null) {
+                    fid = data.from;
+                }
+                pc.setRemoteDescription(data).then(function () {
+                    pc.createAnswer().then(function (ans) {
+                        pc.setLocalDescription(ans).then(function () {
+                            sendMessage(fid, mid, "answer", ans.sdp);
+                        })
+                    });
+                }).catch(function (e) {
+                    console.log("set Remote offer error" + e)
+                });
+                break;
+            case "answer":
+                pc.setRemoteDescription(data).then(function () {
+                    var act = $("#action");
+                    act.text("hangup call");
+                    act.click(function () {
+                        stopCall(cid);
+                    });
+                }).catch(function (e) {
+                    console.log("set Remote answer error" + e)
+                });
+                break;
+            case "candidate":
+                var jc = {
+                    sdpMLineIndex: 0,
+                    candidate: data.sdp
+                };
+                console.log("adding candidate " + JSON.stringify(jc));
+                var nc = new RTCIceCandidate(jc);
+                pc.addIceCandidate(nc).then(function () {
+                    console.log("added remote candidate")
+                }).catch(function (e) {
+                    console.log("couldn't add candidate " + e);
+                });
+                break;
+        }
+    }
+
+    function sendMessage(to,from,type,data){
+        var messageJ = {to:to,from:from,type:type,sdp:data};
+        var message = JSON.stringify(messageJ);
+        console.log("sending "+message);
+        socket.send(message);
+    }
+
+    // button actions
+
+    function startCall(cid){
+        lcandyStash = [];
+        rcandyStash = [];
+        fid = cid;
+        pc.createOffer({offerToReceiveAudio: true, offerToReceiveVideo: false})
+            .then(
+                function (desc){
+                    console.log("offer created");
+                    pc.setLocalDescription(desc).then(function(d){
+                        sendMessage(fid,mid,desc.type,desc.sdp);
+                    });
+                }
+                ).catch(function (e){console.log("offer not created due to "+e)});
+    }
+
+    // configure local peerconnection and handlers
+    function setupRTC(){
+        pc = new RTCPeerConnection(configuration, null);
+        console.log("created peer connection");
+
+        pc.onicecandidate = function(e) {
+            console.log("local ice candidate "+JSON.stringify(e.candidate));
+            if (e.candidate != null) {
+                if (pc.signalingState == 'stable') {
+                    sendMessage(fid,mid,"candidate",e.candidate.candidate);
+                } else {
+                    console.log("stashing ice candidate");
+                    lcandyStash.push(e.candidate);
+                }
+            }
+        };
+        pc.oniceconnectionstatechange = function(e) {
+            console.log("ice state is changed "+pc.iceConnectionState);
+        };
+        pc.onaddstream = function (e) {
+            console.log("got remote stream " + e);
+            var peerInput = ac.createMediaStreamSource(e.stream);
+            var panner = ac.createPanner();
+            panner.setPosition(initiator ? 1.0 : -1.0,0,0);
+            peerInput.connect(panner);
+            panner.connect(ac.destination);
+        };
+        pc.onsignalingstatechange = function (evt) {
+            console.log("signalling state is " + pc.signalingState);
+            if (pc.signalingState == 'stable') {
+                var can;
+                while (can = lcandyStash.pop()) {
+                    console.log("popping candidate off stash")
+                    sendMessage(fid,mid,"candidate",can.candidate);
+                }
+            }
+        };
+    }
+    function setupAudio() {
+        var AudioContext = window.AudioContext || window.webkitAudioContext;
+        ac = new AudioContext();
+
+        navigator.mediaDevices.getUserMedia({audio: true, video: false})
+            .then(function (s) {
+                    pc.addStream(s);
+                    console.log("added local track");
+                }
+            )
+            .catch(function (e) {
+                console.log('getUserMedia() error: ' + e.name);
+            });
+
+    }
+
+    // decide who we are initiator or recpient.
+    // notice that the actual call goes in the reverse direction
+    // the recipient of the invite actually creates the audiobearing peerconnection
+    // the initiator then accepts this audio - This allows the initiator the chance to
+    // change their mind, if their circumstances have changed since the invite was sent.
+
+    function setRole() {
+        var cid = $.getUrlVar("unruptId");
+        mid = localStorage['unruptId'];
+        var act = $("#action");
+        if (!mid) {
+            var array = new Uint32Array(8);
+            window.crypto.getRandomValues(array);
+            var hexCodes = [];
+            for (var i = 0; i < array.length; i ++ ){
+                // Using getUint32 reduces the number of iterations needed (we process 4 bytes each time)
+                var value = array[i];
+                // toString(16) will give the hex representation of the number without padding
+                var stringValue = value.toString(16)
+                // We use concatenation and slice for padding
+                var padding = '00000000'
+                var paddedValue = (padding + stringValue).slice(-padding.length)
+                hexCodes.push(paddedValue);
+            }
+            mid = hexCodes.join("").toLowerCase();
+            console.log("mid ="+mid);
+            localStorage['unruptId'] = mid;
+        }
+        if (cid == null){
+            act.text("make shareable page");
+            act.click(function () {
+                document.location = "index.html?"+"unruptId="+mid;
+            });
+        } else {
+            socket = new WebSocket( "wss://pi.pe/websocket/?finger=" + mid);
+            socket.onmessage = messageDeal;
+            socket.onopen = function() {
+                console.log("connected as "+mid);
+                setupRTC();
+                setupAudio();
+                initiator = (mid === cid);
+                if  (initiator) {
+                    act.text("please share this page as a link");
+                } else {
+                    act.text("accept call");
+                    act.click(function () {
+                        startCall(cid);
+                    });
+                }
+            };
+            socket.onerror = function(e){
+                console.log("can't open websocket "+JSON.stringify(e));
+            };
+            socket.onclose = function(e){
+                console.log(" websocket closed "+JSON.stringify(e));
+            };
+
+        }
+    }
+
+    // some housekeeping
+
+    $.extend({
+        getUrlVars: function(){
+            var vars = [], hash;
+            var hashes = window.location.href.slice(window.location.href.indexOf('?') + 1).split('&');
+            for(var i = 0; i < hashes.length; i++)
+            {
+                hash = hashes[i].split('=');
+                vars.push(hash[0]);
+                vars[hash[0]] = hash[1];
+            }
+            return vars;
+        },
+        getUrlVar: function(name){
+            return $.getUrlVars()[name];
+        }
+    });
+
+    $( document ).ready(function() {
+        setRole();
+    });
+</script>
+</body>
+</html>
