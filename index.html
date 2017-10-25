@@ -22,6 +22,19 @@
     <div class="card-body">
         <button id="action" type="button" class="btn btn-primary"></button>
     </div>
+</div>
+<div class="card">
+    <h4 class="card-header">Audio waveform</h4>
+    <div class="card-body">
+        <canvas id="oscilloscope" style="height:400px;" >Scope</canvas>
+    </div>
+</div>
+<div class="card">
+    <h4 class="card-header">Audio waveform</h4>
+    <div class="card-body">
+<audio id="audio2" autoplay controls></audio>
+    </div>
+</div>
 <script>
 
     var configuration = {
@@ -38,6 +51,7 @@
     var fid;
     var ac;
     var initiator;
+    var analyser; // webaudio thing that detects and shows (for now) input audio
     var lcandyStash = [];
     var rcandyStash = [];
 
@@ -137,11 +151,19 @@
         };
         pc.onaddstream = function (e) {
             console.log("got remote stream " + e);
-            var peerInput = ac.createMediaStreamSource(e.stream);
-            var panner = ac.createPanner();
-            panner.setPosition(initiator ? 1.0 : -1.0,0,0);
-            peerInput.connect(panner);
-            panner.connect(ac.destination);
+            if (ac) {
+                var peerInput = ac.createMediaStreamSource(e.stream);
+                analyser = ac.createAnalyser();
+                analyser.fftSize = 2048;
+                peerInput.connect(analyser);
+                analyser.connect(ac.destination);
+                draw();
+            } else {
+                console.log("got new stream");
+                console.log("Audio context null - somehow...")
+                var audio = document.getElementById('audio2');
+                audio.srcObject = e.stream;
+            }
         };
         pc.onsignalingstatechange = function (evt) {
             console.log("signalling state is " + pc.signalingState);
@@ -156,7 +178,7 @@
     }
     function setupAudio() {
         var AudioContext = window.AudioContext || window.webkitAudioContext;
-        ac = new AudioContext();
+        //ac = new AudioContext();
 
         navigator.mediaDevices.getUserMedia({audio: true, video: false})
             .then(function (s) {
@@ -229,6 +251,49 @@
 
         }
     }
+
+// oscilloscope - for debug.
+    function draw() {
+        var bufferLength = analyser.frequencyBinCount;
+        var dataArray = new Uint8Array(bufferLength);
+        analyser.getByteTimeDomainData(dataArray);
+
+// Get a canvas defined with ID "oscilloscope"
+        var canvas = document.getElementById("oscilloscope");
+        var canvasCtx = canvas.getContext("2d");
+        var drawVisual = requestAnimationFrame(draw);
+
+        analyser.getByteTimeDomainData(dataArray);
+
+        canvasCtx.fillStyle = 'rgb(200, 200, 200)';
+        canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+
+        canvasCtx.lineWidth = 2;
+        canvasCtx.strokeStyle = 'rgb(0, 0, 0)';
+
+        canvasCtx.beginPath();
+
+        var sliceWidth = canvas.width * 1.0 / bufferLength;
+        var x = 0;
+
+        for (var i = 0; i < bufferLength; i++) {
+
+            var v = dataArray[i] / 128.0;
+            var y = v * canvas.height / 2;
+
+            if (i === 0) {
+                canvasCtx.moveTo(x, y);
+            } else {
+                canvasCtx.lineTo(x, y);
+            }
+
+            x += sliceWidth;
+        }
+
+        canvasCtx.lineTo(canvas.width, canvas.height / 2);
+        canvasCtx.stroke();
+    };
+
 
     // some housekeeping
 
