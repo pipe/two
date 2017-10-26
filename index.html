@@ -26,7 +26,22 @@
 <div class="card">
     <h4 class="card-header">Audio waveform</h4>
     <div class="card-body">
-        <canvas id="oscilloscope" style="height:400px;" >Scope</canvas>
+        <div class="container">
+            <div class="row">
+                <div class="col-sm card">
+                    <div class="card-header">My Mic</div>
+                    <div class="card-body">
+                    <canvas id="nearscope" style="height:200px;" >Scope</canvas>
+                    </div>
+                </div>
+                <div class="col-sm card">
+                    <div class="card-header">Your Mic</div>
+                    <div class="card-body">
+                    <canvas id="farscope" style="height:200px;" >Scope</canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 <div class="card">
@@ -51,7 +66,6 @@
     var fid;
     var ac;
     var initiator;
-    var analyser; // webaudio thing that detects and shows (for now) input audio
     var lcandyStash = [];
     var rcandyStash = [];
 
@@ -123,19 +137,27 @@
     function stopCall(){
         window.location.href=window.location.href;
     }
-    function addStream(stream) {
+    function doScope(stream, scopename){
+
+        var analyser = null;
         if (ac) {
+            console.log("setting stream for audio context");
             var peerInput = ac.createMediaStreamSource(stream);
             analyser = ac.createAnalyser();
             analyser.fftSize = 2048;
             peerInput.connect(analyser);
-            //analyser.connect(ac.destination);
-            draw();
+            makeDraw(scopename,analyser);
+        } else {
+            console.log("no audio context");
         }
+        return analyser;
+    }
+    function addStream(stream) {
+
         console.log("got new stream");
         var audio = document.getElementById('audio2');
         audio.srcObject = stream;
-
+        doScope(stream,"farscope");
     }
     // configure local peerconnection and handlers
     function setupRTC(){
@@ -189,7 +211,8 @@
 
         navigator.mediaDevices.getUserMedia({audio: true, video: false})
             .then((stream) => {
-                    if (pc.addTrack) {
+                doScope(stream,"nearscope");
+                if (pc.addTrack) {
                         stream.getTracks().forEach(track => {
                             pc.addTrack(track, stream);
                             console.log("added local track "+track.id);
@@ -262,47 +285,50 @@
         }
     }
 
-// oscilloscope - for debug.
-    function draw() {
+    function makeDraw(canvName, anode) {
+        var analyser = anode;
         var bufferLength = analyser.frequencyBinCount;
         var dataArray = new Uint8Array(bufferLength);
         analyser.getByteTimeDomainData(dataArray);
-
-// Get a canvas defined with ID "oscilloscope"
-        var canvas = document.getElementById("oscilloscope");
+        var canvas = document.getElementById(canvName);
         var canvasCtx = canvas.getContext("2d");
-        var drawVisual = requestAnimationFrame(draw);
+// oscilloscope - for debug.
+        var draw = _ => {
+// Get a canvas defined with ID "oscilloscope"
+            var drawVisual = requestAnimationFrame(draw);
 
-        analyser.getByteTimeDomainData(dataArray);
+            analyser.getByteTimeDomainData(dataArray);
 
-        canvasCtx.fillStyle = 'rgb(200, 200, 200)';
-        canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+            canvasCtx.fillStyle = 'rgb(200, 200, 200)';
+            canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
 
-        canvasCtx.lineWidth = 2;
-        canvasCtx.strokeStyle = 'rgb(0, 0, 0)';
+            canvasCtx.lineWidth = 2;
+            canvasCtx.strokeStyle = 'rgb(0, 0, 0)';
 
-        canvasCtx.beginPath();
+            canvasCtx.beginPath();
 
-        var sliceWidth = canvas.width * 1.0 / bufferLength;
-        var x = 0;
+            var sliceWidth = canvas.width * 1.0 / bufferLength;
+            var x = 0;
 
-        for (var i = 0; i < bufferLength; i++) {
+            for (var i = 0; i < bufferLength; i++) {
 
-            var v = dataArray[i] / 128.0;
-            var y = v * canvas.height / 2;
+                var v = dataArray[i] / 128.0;
+                var y = v * canvas.height / 2;
 
-            if (i === 0) {
-                canvasCtx.moveTo(x, y);
-            } else {
-                canvasCtx.lineTo(x, y);
+                if (i === 0) {
+                    canvasCtx.moveTo(x, y);
+                } else {
+                    canvasCtx.lineTo(x, y);
+                }
+
+                x += sliceWidth;
             }
+            canvasCtx.lineTo(canvas.width, canvas.height / 2);
+            canvasCtx.stroke();
+        };
+        draw();
+    }
 
-            x += sliceWidth;
-        }
-
-        canvasCtx.lineTo(canvas.width, canvas.height / 2);
-        canvasCtx.stroke();
-    };
 
 
     // some housekeeping
