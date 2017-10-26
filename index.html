@@ -182,7 +182,7 @@
     }
     function setupAudio() {
         var AudioContext = window.AudioContext || window.webkitAudioContext;
-        //ac = new AudioContext();
+        ac = new AudioContext();
 
         navigator.mediaDevices.getUserMedia({audio: true, video: false})
             .then((stream) => {
