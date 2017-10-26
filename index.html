@@ -149,10 +149,11 @@
         pc.oniceconnectionstatechange = function(e) {
             console.log("ice state is changed "+pc.iceConnectionState);
         };
-        pc.onaddstream = function (e) {
-            console.log("got remote stream " + e);
+        pc.ontrack = function(event) {
+            var stream = event.streams[0];
+            console.log("got remote stream " + stream.type);
             if (ac) {
-                var peerInput = ac.createMediaStreamSource(e.stream);
+                var peerInput = ac.createMediaStreamSource(stream);
                 analyser = ac.createAnalyser();
                 analyser.fftSize = 2048;
                 peerInput.connect(analyser);
@@ -162,7 +163,7 @@
                 console.log("got new stream");
                 console.log("Audio context null - somehow...")
                 var audio = document.getElementById('audio2');
-                audio.srcObject = e.stream;
+                audio.srcObject = stream;
             }
         };
         pc.onsignalingstatechange = function (evt) {
