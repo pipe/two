@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
-    <title>Hello, world!</title>
+    <title>Unrupt calls</title>
     <!-- Required meta tags -->
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css" integrity="sha384-PsH8R72JQ3SOdhVi3uxftmaW6Vc51MKb0q5P2rRUpPvrszuE4W1povHYgTpBfshb" crossorigin="anonymous">
 </head>
 <body>
-<h1 id="title" class="text-center">Unrupt Browser Test Page</h1>
+<h1 id="title" class="text-center">Unrupt Calls</h1>
 <h3 id="useragent"></h3>
 <!-- Optional JavaScript -->
 <!-- jQuery first, then Popper.js, then Bootstrap JS -->
@@ -30,7 +30,7 @@
     </div>
 </div>
 <div class="card">
-    <h4 class="card-header">Audio waveform</h4>
+    <h4 class="card-header">Audio player</h4>
     <div class="card-body">
 <audio id="audio2" autoplay controls></audio>
     </div>
@@ -82,8 +82,6 @@
                 pc.setRemoteDescription(data)
                     .then( _ => {
                     var act = $("#action");
-                    act.text("hangup call");
-                    act.click( _ => stopCall() );
                 })
                     .catch(e => console.log("set Remote answer error" + e) );
                 break;
@@ -123,22 +121,21 @@
     }
 
     function stopCall(){
-
+        window.location.href=window.location.href;
     }
-    function addStream(stream){
+    function addStream(stream) {
         if (ac) {
             var peerInput = ac.createMediaStreamSource(stream);
             analyser = ac.createAnalyser();
             analyser.fftSize = 2048;
             peerInput.connect(analyser);
-            analyser.connect(ac.destination);
+            //analyser.connect(ac.destination);
             draw();
-        } else {
-            console.log("got new stream");
-            console.log("Audio context null - somehow...")
-            var audio = document.getElementById('audio2');
-            audio.srcObject = stream;
         }
+        console.log("got new stream");
+        var audio = document.getElementById('audio2');
+        audio.srcObject = stream;
+
     }
     // configure local peerconnection and handlers
     function setupRTC(){
@@ -158,6 +155,9 @@
         };
         pc.oniceconnectionstatechange = (e) => {
             console.log("ice state is changed "+pc.iceConnectionState);
+            if (pc.iceConnectionState === "disconnected"){
+                stopCall();
+            }
         };
         pc.onaddstream = (event) =>{
             var stream = event.stream;
@@ -177,6 +177,9 @@
                     console.log("popping candidate off stash")
                     sendMessage(fid,mid,"candidate",can.candidate);
                 }
+                var act = $("#action");
+                act.text("hangup call");
+                act.click( _ => stopCall() );
             }
         };
     }
