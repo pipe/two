@@ -69,26 +69,23 @@
                 if (fid == null) {
                     fid = data.from;
                 }
-                pc.setRemoteDescription(data).then(function () {
-                    pc.createAnswer().then(function (ans) {
-                        pc.setLocalDescription(ans).then(function () {
-                            sendMessage(fid, mid, "answer", ans.sdp);
-                        })
-                    });
-                }).catch(function (e) {
-                    console.log("set Remote offer error" + e)
-                });
+                pc.setRemoteDescription(data).then( _ =>
+                    pc.createAnswer({offerToReceiveAudio: true, offerToReceiveVideo: false}).then(ans =>
+                        pc.setLocalDescription(ans).then( _ =>
+                            sendMessage(fid, mid, "answer", ans.sdp)
+                        )
+                    )
+                )
+                    .catch((e) => console.log("set Remote offer error" + e));
                 break;
             case "answer":
-                pc.setRemoteDescription(data).then(function () {
+                pc.setRemoteDescription(data)
+                    .then( _ => {
                     var act = $("#action");
                     act.text("hangup call");
-                    act.click(function () {
-                        stopCall(cid);
-                    });
-                }).catch(function (e) {
-                    console.log("set Remote answer error" + e)
-                });
+                    act.click( _ => stopCall() );
+                })
+                    .catch(e => console.log("set Remote answer error" + e) );
                 break;
             case "candidate":
                 var jc = {
@@ -97,11 +94,9 @@
                 };
                 console.log("adding candidate " + JSON.stringify(jc));
                 var nc = new RTCIceCandidate(jc);
-                pc.addIceCandidate(nc).then(function () {
-                    console.log("added remote candidate")
-                }).catch(function (e) {
-                    console.log("couldn't add candidate " + e);
-                });
+                pc.addIceCandidate(nc)
+                    .then( _ => console.log("added remote candidate"))
+                    .catch((e) => console.log("couldn't add candidate " + e));
                 break;
         }
     }
@@ -120,22 +115,37 @@
         rcandyStash = [];
         fid = cid;
         pc.createOffer({offerToReceiveAudio: true, offerToReceiveVideo: false})
-            .then(
-                function (desc){
+            .then(desc => {
                     console.log("offer created");
-                    pc.setLocalDescription(desc).then(function(d){
-                        sendMessage(fid,mid,desc.type,desc.sdp);
-                    });
-                }
-                ).catch(function (e){console.log("offer not created due to "+e)});
+                    pc.setLocalDescription(desc).then( d => sendMessage(fid,mid,desc.type,desc.sdp));
+                })
+            .catch(e => console.log("offer not created due to "+e) );
     }
 
+    function stopCall(){
+
+    }
+    function addStream(stream){
+        if (ac) {
+            var peerInput = ac.createMediaStreamSource(stream);
+            analyser = ac.createAnalyser();
+            analyser.fftSize = 2048;
+            peerInput.connect(analyser);
+            analyser.connect(ac.destination);
+            draw();
+        } else {
+            console.log("got new stream");
+            console.log("Audio context null - somehow...")
+            var audio = document.getElementById('audio2');
+            audio.srcObject = stream;
+        }
+    }
     // configure local peerconnection and handlers
     function setupRTC(){
         pc = new RTCPeerConnection(configuration, null);
         console.log("created peer connection");
 
-        pc.onicecandidate = function(e) {
+        pc.onicecandidate = (e) => {
             console.log("local ice candidate "+JSON.stringify(e.candidate));
             if (e.candidate != null) {
                 if (pc.signalingState == 'stable') {
@@ -146,27 +156,20 @@
                 }
             }
         };
-        pc.oniceconnectionstatechange = function(e) {
+        pc.oniceconnectionstatechange = (e) => {
             console.log("ice state is changed "+pc.iceConnectionState);
         };
-        pc.ontrack = function(event) {
+        pc.onaddstream = (event) =>{
+            var stream = event.stream;
+            console.log("got remote stream " + stream.kind);
+            addStream(stream);
+        }
+        pc.ontrack = (event) => {
             var stream = event.streams[0];
-            console.log("got remote stream " + stream.type);
-            if (ac) {
-                var peerInput = ac.createMediaStreamSource(stream);
-                analyser = ac.createAnalyser();
-                analyser.fftSize = 2048;
-                peerInput.connect(analyser);
-                analyser.connect(ac.destination);
-                draw();
-            } else {
-                console.log("got new stream");
-                console.log("Audio context null - somehow...")
-                var audio = document.getElementById('audio2');
-                audio.srcObject = stream;
-            }
+            console.log("got remote track " + stream.kind);
+            addStream(stream);
         };
-        pc.onsignalingstatechange = function (evt) {
+        pc.onsignalingstatechange = (evt) => {
             console.log("signalling state is " + pc.signalingState);
             if (pc.signalingState == 'stable') {
                 var can;
@@ -182,14 +185,19 @@
         //ac = new AudioContext();
 
         navigator.mediaDevices.getUserMedia({audio: true, video: false})
-            .then(function (s) {
-                    pc.addStream(s);
-                    console.log("added local track");
+            .then((stream) => {
+                    if (pc.addTrack) {
+                        stream.getTracks().forEach(track => {
+                            pc.addTrack(track, stream);
+                            console.log("added local track "+track.id);
+                        });
+                    } else {
+                        pc.addStream(stream);
+                        console.log("added local stream");
+                    }
                 }
             )
-            .catch(function (e) {
-                console.log('getUserMedia() error: ' + e.name);
-            });
+            .catch((e) => console.log('getUserMedia() error: ' + e.name));
 
     }
 
@@ -223,13 +231,13 @@
         }
         if (cid == null){
             act.text("make shareable page");
-            act.click(function () {
+            act.click( _ => {
                 document.location = "index.html?"+"unruptId="+mid;
             });
         } else {
             socket = new WebSocket( "wss://pi.pe/websocket/?finger=" + mid);
             socket.onmessage = messageDeal;
-            socket.onopen = function() {
+            socket.onopen = (_) => {
                 console.log("connected as "+mid);
                 setupRTC();
                 setupAudio();
@@ -238,15 +246,13 @@
                     act.text("please share this page as a link");
                 } else {
                     act.text("accept call");
-                    act.click(function () {
-                        startCall(cid);
-                    });
+                    act.click( () => startCall(cid));
                 }
             };
-            socket.onerror = function(e){
+            socket.onerror = (e) => {
                 console.log("can't open websocket "+JSON.stringify(e));
             };
-            socket.onclose = function(e){
+            socket.onclose = (e) => {
                 console.log(" websocket closed "+JSON.stringify(e));
             };
 
@@ -315,7 +321,7 @@
         }
     });
 
-    $( document ).ready(function() {
+    $( document ).ready( _ => {
         setRole();
     });
 </script>
