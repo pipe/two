@@ -20,7 +20,8 @@
 <div class="card">
     <h4 class="card-header">Call</h4>
     <div class="card-body">
-        <button id="action" type="button" class="btn btn-primary"></button>
+        <button id="action" type="button" class="btn btn-primary btn-lg"></button>
+        <button id="pause" type="button" class="btn btn-primary btn-lg">pause</button>
     </div>
 </div>
 <div class="card">
@@ -35,7 +36,7 @@
                     </div>
                 </div>
                 <div class="col-sm card">
-                    <div class="card-header">Your Mic</div>
+                    <div class="card-header">Your Mic <span id="yourspeaking" class="badge badge-secondary">New</span> </div>
                     <div class="card-body">
                     <canvas id="farscope" style="height:200px;" >Scope</canvas>
                     </div>
@@ -137,27 +138,84 @@
     function stopCall(){
         window.location.href=window.location.href;
     }
-    function doScope(stream, scopename){
 
-        var analyser = null;
-        if (ac) {
-            console.log("setting stream for audio context");
-            var peerInput = ac.createMediaStreamSource(stream);
-            analyser = ac.createAnalyser();
-            analyser.fftSize = 2048;
-            peerInput.connect(analyser);
-            makeDraw(scopename,analyser);
-        } else {
-            console.log("no audio context");
-        }
+    function doScope(stream, scopename){
+        var node = ac.createMediaStreamSource(stream);
+        return doScopeNode(node,scopename);
+    }
+
+    function doScopeNode(node, scopename) {
+
+        console.log("makeing scope node "+scopename);
+        var analyser = ac.createAnalyser();
+        analyser.fftSize = 2048;
+        node.connect(analyser);
+        makeDraw(scopename, analyser);
         return analyser;
+    }
+    function mkBufferProc(node){
+        var buffer = ac.createScriptProcessor(4096, 1, 1);
+        console.log("made unrupt buffer of size "+buffer.bufferSize);
+        var paused = false;
+        var speakBadge = $("#yourspeaking");
+        var pb = $("#pause");
+        pb.click( _ => {
+            paused = !paused;
+            if (paused){
+                pb.text("unpause");
+            } else {
+                pb.text("pause");
+            }
+        } );
+        buffer.onaudioprocess = ape => {
+
+            // The input buffer is the song we loaded earlier
+            var inputBuffer = ape.inputBuffer;
+
+            // The output buffer contains the samples that will be modified and played
+            var outputBuffer = ape.outputBuffer;
+
+            if (outputBuffer.numberOfChannels == 1){
+            // Loop through the output channels (in this case there is only one)
+                var inputData = inputBuffer.getChannelData(0);
+                var sum = 0.0;
+                for (var sample = 0; sample < inputBuffer.length; sample++) {
+                    sum += Math.abs(inputData[sample]);
+                }
+                var avg = sum / inputBuffer.length;
+                var speaking =  (avg > 0.02);
+
+                speakBadge.text(speaking?"Speaking":"Silent");
+                var outputData = outputBuffer.getChannelData(0);
+
+                // Loop through the 4096 samples
+                for (var sample = 0; sample < inputBuffer.length; sample++) {
+                    // make output equal to the same as the input or zero if paused.
+                    if(paused) {
+                        outputData[sample] = 0;
+                    } else {
+                        outputData[sample] = inputData[sample];
+                    }
+                }
+            } else {
+                console.log("wrong number of channels "+outputBuffer.numberOfChannels);
+            }
+        };
+        node.connect(buffer);
+        return buffer;
     }
     function addStream(stream) {
 
         console.log("got new stream");
-        var audio = document.getElementById('audio2');
-        audio.srcObject = stream;
-        doScope(stream,"farscope");
+        //var audio = document.getElementById('audio2');
+        //audio.srcObject = stream;
+        //var farscope = doScope(stream,"farscope");
+        var peer = ac.createMediaStreamSource(stream);
+
+        var scope = doScopeNode(peer,"farscope");
+        var buffproc = mkBufferProc(scope);
+
+        buffproc.connect(ac.destination);
     }
     // configure local peerconnection and handlers
     function setupRTC(){
@@ -181,16 +239,19 @@
                 stopCall();
             }
         };
-        pc.onaddstream = (event) =>{
-            var stream = event.stream;
-            console.log("got remote stream " + stream.kind);
-            addStream(stream);
+        if ('ontrack' in pc) {
+            pc.ontrack = (event) => {
+                var stream = event.streams[0];
+                console.log("got remote track " + stream.kind);
+                addStream(stream);
+            };
+        } else {
+            pc.onaddstream = (event) => {
+                var stream = event.stream;
+                console.log("got remote stream " + stream.kind);
+                addStream(stream);
+            }
         }
-        pc.ontrack = (event) => {
-            var stream = event.streams[0];
-            console.log("got remote track " + stream.kind);
-            addStream(stream);
-        };
         pc.onsignalingstatechange = (evt) => {
             console.log("signalling state is " + pc.signalingState);
             if (pc.signalingState == 'stable') {
