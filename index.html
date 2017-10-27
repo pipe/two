@@ -30,13 +30,13 @@
         <div class="container">
             <div class="row">
                 <div class="col-sm card">
-                    <div class="card-header">My Mic</div>
+                    <div class="card-header">This Microphone <span id="myspeaking" class="badge badge-secondary">Silent</span></div>
                     <div class="card-body">
                     <canvas id="nearscope" style="height:200px;" >Scope</canvas>
                     </div>
                 </div>
                 <div class="col-sm card">
-                    <div class="card-header">Your Mic <span id="yourspeaking" class="badge badge-secondary">New</span> </div>
+                    <div class="card-header">Far Microphone <span id="yourspeaking" class="badge badge-secondary">Silent</span> </div>
                     <div class="card-body">
                     <canvas id="farscope" style="height:200px;" >Scope</canvas>
                     </div>
@@ -145,7 +145,6 @@
     }
 
     function doScopeNode(node, scopename) {
-
         console.log("makeing scope node "+scopename);
         var analyser = ac.createAnalyser();
         analyser.fftSize = 2048;
@@ -153,11 +152,30 @@
         makeDraw(scopename, analyser);
         return analyser;
     }
-    function mkBufferProc(node){
+    function isSpeaking(inputBuffer){
+        var speaking = false;
+        // The input buffer is the song we loaded earlier
+        if (inputBuffer.numberOfChannels == 1){
+            // Loop through the output channels (in this case there is only one)
+            var inputData = inputBuffer.getChannelData(0);
+            var sum = 0.0;
+            for (var sample = 0; sample < inputBuffer.length; sample++) {
+                sum += Math.abs(inputData[sample]);
+            }
+            var avg = sum / inputBuffer.length;
+            speaking =  (avg > 0.02);
+
+        } else {
+            console.log("wrong number of channels "+inputBuffer.numberOfChannels);
+        }
+        return speaking;
+    }
+    function yourProc(node){
         var buffer = ac.createScriptProcessor(4096, 1, 1);
         console.log("made unrupt buffer of size "+buffer.bufferSize);
         var paused = false;
         var speakBadge = $("#yourspeaking");
+        var speaking = false;
         var pb = $("#pause");
         pb.click( _ => {
             paused = !paused;
@@ -168,37 +186,54 @@
             }
         } );
         buffer.onaudioprocess = ape => {
-
-            // The input buffer is the song we loaded earlier
             var inputBuffer = ape.inputBuffer;
-
+            var newspeak = isSpeaking(inputBuffer);
+            if (newspeak != speaking) {
+                speaking = newspeak;
+                speakBadge.text(speaking ? "Speaking" : "Silent");
+            }
             // The output buffer contains the samples that will be modified and played
             var outputBuffer = ape.outputBuffer;
 
-            if (outputBuffer.numberOfChannels == 1){
             // Loop through the output channels (in this case there is only one)
+            if (inputBuffer.numberOfChannels == 1){
                 var inputData = inputBuffer.getChannelData(0);
-                var sum = 0.0;
-                for (var sample = 0; sample < inputBuffer.length; sample++) {
-                    sum += Math.abs(inputData[sample]);
-                }
-                var avg = sum / inputBuffer.length;
-                var speaking =  (avg > 0.02);
-
-                speakBadge.text(speaking?"Speaking":"Silent");
                 var outputData = outputBuffer.getChannelData(0);
-
                 // Loop through the 4096 samples
                 for (var sample = 0; sample < inputBuffer.length; sample++) {
-                    // make output equal to the same as the input or zero if paused.
-                    if(paused) {
-                        outputData[sample] = 0;
-                    } else {
-                        outputData[sample] = inputData[sample];
-                    }
+                    // make output equal to the same as the input
+                    outputData[sample] = paused? 0.0 : inputData[sample];
                 }
-            } else {
-                console.log("wrong number of channels "+outputBuffer.numberOfChannels);
+            }
+        };
+        node.connect(buffer);
+        return buffer;
+    }
+    function myProc(node){
+        var buffer = ac.createScriptProcessor(4096, 1, 1);
+        console.log("made unrupt buffer of size "+buffer.bufferSize);
+        var speakBadge = $("#myspeaking");
+        var speaking = false;
+
+        buffer.onaudioprocess = ape => {
+            var inputBuffer = ape.inputBuffer;
+            var newspeak = isSpeaking(inputBuffer);
+            if (newspeak != speaking) {
+                speaking = newspeak;
+                speakBadge.text(speaking ? "Speaking" : "Silent");
+            }
+
+            var outputBuffer = ape.outputBuffer;
+
+            // Loop through the output channels (in this case there is only one)
+            if (inputBuffer.numberOfChannels == 1){
+                var inputData = inputBuffer.getChannelData(0);
+                var outputData = outputBuffer.getChannelData(0);
+                // Loop through the 4096 samples
+                for (var sample = 0; sample < inputBuffer.length; sample++) {
+                    // make output equal to the same as the input
+                    outputData[sample] = inputData[sample];
+                }
             }
         };
         node.connect(buffer);
@@ -213,7 +248,7 @@
         var peer = ac.createMediaStreamSource(stream);
 
         var scope = doScopeNode(peer,"farscope");
-        var buffproc = mkBufferProc(scope);
+        var buffproc = yourProc(scope);
 
         buffproc.connect(ac.destination);
     }
@@ -272,7 +307,10 @@
 
         navigator.mediaDevices.getUserMedia({audio: true, video: false})
             .then((stream) => {
-                doScope(stream,"nearscope");
+                var node = ac.createMediaStreamSource(stream);
+                var detect =  myProc(node);
+                var manl = doScopeNode(detect,"nearscope");
+    
                 if (pc.addTrack) {
                         stream.getTracks().forEach(track => {
                             pc.addTrack(track, stream);
