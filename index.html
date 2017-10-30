@@ -79,6 +79,7 @@
     var remoteStream;
     var scopes= [];
     var procs =[];
+    var audiostash = [];
 
     // message stuff - used to create direct connection to peer
 
@@ -187,10 +188,29 @@
                 var inputData = inputBuffer.getChannelData(0);
                 var outputData = outputBuffer.getChannelData(0);
                 // Loop through the 4096 samples
-                for (var sample = 0; sample < inputBuffer.length; sample++) {
-                    // make output equal to the same as the input
-                    outputData[sample] = paused? 0.0 : inputData[sample];
+                if (paused){
+                    var buff = new Float32Array(inputBuffer.length);
+                    for (var sample = 0; sample < inputBuffer.length; sample++) {
+                        // make output equal to the same as the input
+                        outputData[sample] = 0.0;
+                        buff[sample] = inputData[sample];
+                    }
+                    audiostash.unshift(buff);
+                } else {
+                    if (audiostash.length >0){
+                        var buff = audiostash.pop();
+                        for (var sample = 0; sample < inputBuffer.length; sample++) {
+                            // make output equal to the same as the input
+                            outputData[sample] = buff[sample];
+                        }
+                    } else {
+                        for (var sample = 0; sample < inputBuffer.length; sample++) {
+                            // make output equal to the same as the input
+                            outputData[sample] = inputData[sample];
+                        }
+                    }
                 }
+
             }
         };
         node.connect(buffer);
