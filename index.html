@@ -36,7 +36,7 @@
                     </div>
                 </div>
                 <div class="col-sm card">
-                    <div class="card-header">This Speaker <span id="earscope-badge" class="badge badge-secondary">Silent</span></div>
+                    <div class="card-header">Unrupt Buffer <span id="earscope-badge" class="badge badge-secondary">Silent</span></div>
                     <div class="card-body">
                         <canvas id="earscope" style="height:200px;" >Scope</canvas>
                     </div>
@@ -54,7 +54,9 @@
 <div class="card">
     <h4 class="card-header">Audio player</h4>
     <div class="card-body">
-<audio id="audio2" autoplay controls></audio>
+        <div class="progress">
+            <div id="unruptbuffer" class="progress-bar" role="progressbar" style="width: 100%" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
+        </div>
     </div>
 </div>
 <script>
@@ -79,7 +81,8 @@
     var remoteStream;
     var scopes= [];
     var procs =[];
-    var audiostash = [];
+    var backlog = 0;
+    var tick;
 
     // message stuff - used to create direct connection to peer
 
@@ -107,7 +110,7 @@
             case "answer":
                 pc.setRemoteDescription(data)
                     .then( _ => {
-                    var act = $("#action").text("Starting");
+                    var act = $("#action").text("hangup");
                 })
                     .catch(e => console.log("set Remote answer error" + e) );
                 break;
@@ -165,10 +168,22 @@
         return analyser;
     }
 
+    function isBuffSilent(buff){
+        var avg = 0.0;
+        for (var sample = 0; sample < inputBuffer.length; sample++) {
+            avg += Math.abs(buff[sample]);
+        }
+        avg = avg / inputBuffer.length;
+        return  (avg > 0.0175) ;
+    }
+
     function yourProc(node){
         var buffer = ac.createScriptProcessor(4096, 1, 1);
         console.log("made unrupt buffer of size "+buffer.bufferSize);
         var paused = false;
+        var silentcount = 0;
+        var audiostash = [];
+
         var pb = $("#pause");
         pb.click( _ => {
             paused = !paused;
@@ -187,30 +202,51 @@
             if (inputBuffer.numberOfChannels == 1){
                 var inputData = inputBuffer.getChannelData(0);
                 var outputData = outputBuffer.getChannelData(0);
-                // Loop through the 4096 samples
-                if (paused){
+
+                // we (almost) always stash the inbound data
+                if (audiostash.length < 1000) {
                     var buff = new Float32Array(inputBuffer.length);
+                    var avg = 0.0;
+
                     for (var sample = 0; sample < inputBuffer.length; sample++) {
-                        // make output equal to the same as the input
-                        outputData[sample] = 0.0;
-                        buff[sample] = inputData[sample];
+                        buff[sample] = inputData[sample]; // copy
+                        avg += Math.abs(buff[sample]); // sample
                     }
-                    audiostash.unshift(buff);
-                } else {
-                    if (audiostash.length >0){
-                        var buff = audiostash.pop();
-                        for (var sample = 0; sample < inputBuffer.length; sample++) {
-                            // make output equal to the same as the input
-                            outputData[sample] = buff[sample];
-                        }
+                    avg = avg / inputBuffer.length;
+                    var silent =   (avg  < 0.015);
+                    if (silent){
+                        silentcount++;
                     } else {
-                        for (var sample = 0; sample < inputBuffer.length; sample++) {
-                            // make output equal to the same as the input
-                            outputData[sample] = inputData[sample];
+                        silentcount =0;
+                    }
+                    audiostash.unshift({silent: silent, buff:buff, silentcount: silentcount});
+                    // store annotated version
+                }
+                backlog = audiostash.length /10;
+                if (paused) {
+                    for (var sample = 0; sample < inputBuffer.length; sample++) {
+                        outputData[sample] = 0.0; // silence
+                    }
+                } else {
+                    var stash = audiostash.pop();
+                    var deleteme = (stash.silent);
+                    while ((audiostash.length > 0) && (deleteme)){
+                        console.log("have backlog"+audiostash.length);
+                        deleteme = false;
+                        if (audiostash[0].silent){
+                            console.log("next one is silent too");
+                            if (stash.silentcount > 3){
+                                console.log("silentcount = "+stash.silentcount);
+                                deleteme = true;
+                                stash = audiostash.pop();
+                            }
                         }
+                    }
+                    var buff = stash.buff;
+                    for (var sample = 0; sample < inputBuffer.length; sample++) {
+                        outputData[sample] = buff[sample];
                     }
                 }
-
             }
         };
         node.connect(buffer);
@@ -467,6 +503,9 @@
 
     $( document ).ready( _ => {
         setRole();
+        tick = window.setInterval( t => {
+            $('#unruptbuffer').css('width', backlog+"%").attr('aria-valuenow', backlog);
+        },250);
     });
 </script>
 </body>
