@@ -30,13 +30,19 @@
         <div class="container">
             <div class="row">
                 <div class="col-sm card">
-                    <div class="card-header">This Microphone <span id="myspeaking" class="badge badge-secondary">Silent</span></div>
+                    <div class="card-header">This Microphone <span id="nearscope-badge" class="badge badge-secondary">Silent</span></div>
                     <div class="card-body">
                     <canvas id="nearscope" style="height:200px;" >Scope</canvas>
                     </div>
                 </div>
                 <div class="col-sm card">
-                    <div class="card-header">Far Microphone <span id="yourspeaking" class="badge badge-secondary">Silent</span> </div>
+                    <div class="card-header">This Speaker <span id="earscope-badge" class="badge badge-secondary">Silent</span></div>
+                    <div class="card-body">
+                        <canvas id="earscope" style="height:200px;" >Scope</canvas>
+                    </div>
+                </div>
+                <div class="col-sm card">
+                    <div class="card-header">Far Microphone <span id="farscope-badge" class="badge badge-secondary">Silent</span> </div>
                     <div class="card-body">
                     <canvas id="farscope" style="height:200px;" >Scope</canvas>
                     </div>
@@ -69,6 +75,10 @@
     var initiator;
     var lcandyStash = [];
     var rcandyStash = [];
+    var localStream;
+    var remoteStream;
+    var scopes= [];
+    var procs =[];
 
     // message stuff - used to create direct connection to peer
 
@@ -96,7 +106,7 @@
             case "answer":
                 pc.setRemoteDescription(data)
                     .then( _ => {
-                    var act = $("#action");
+                    var act = $("#action").text("Starting");
                 })
                     .catch(e => console.log("set Remote answer error" + e) );
                 break;
@@ -150,32 +160,14 @@
         analyser.fftSize = 2048;
         node.connect(analyser);
         makeDraw(scopename, analyser);
+        scopes.push(analyser);
         return analyser;
     }
-    function isSpeaking(inputBuffer){
-        var speaking = false;
-        // The input buffer is the song we loaded earlier
-        if (inputBuffer.numberOfChannels == 1){
-            // Loop through the output channels (in this case there is only one)
-            var inputData = inputBuffer.getChannelData(0);
-            var sum = 0.0;
-            for (var sample = 0; sample < inputBuffer.length; sample++) {
-                sum += Math.abs(inputData[sample]);
-            }
-            var avg = sum / inputBuffer.length;
-            speaking =  (avg > 0.02);
 
-        } else {
-            console.log("wrong number of channels "+inputBuffer.numberOfChannels);
-        }
-        return speaking;
-    }
     function yourProc(node){
         var buffer = ac.createScriptProcessor(4096, 1, 1);
         console.log("made unrupt buffer of size "+buffer.bufferSize);
         var paused = false;
-        var speakBadge = $("#yourspeaking");
-        var speaking = false;
         var pb = $("#pause");
         pb.click( _ => {
             paused = !paused;
@@ -187,11 +179,6 @@
         } );
         buffer.onaudioprocess = ape => {
             var inputBuffer = ape.inputBuffer;
-            var newspeak = isSpeaking(inputBuffer);
-            if (newspeak != speaking) {
-                speaking = newspeak;
-                speakBadge.text(speaking ? "Speaking" : "Silent");
-            }
             // The output buffer contains the samples that will be modified and played
             var outputBuffer = ape.outputBuffer;
 
@@ -207,21 +194,15 @@
             }
         };
         node.connect(buffer);
+        procs.push(buffer)
         return buffer;
     }
     function myProc(node){
         var buffer = ac.createScriptProcessor(4096, 1, 1);
         console.log("made unrupt buffer of size "+buffer.bufferSize);
-        var speakBadge = $("#myspeaking");
-        var speaking = false;
 
         buffer.onaudioprocess = ape => {
             var inputBuffer = ape.inputBuffer;
-            var newspeak = isSpeaking(inputBuffer);
-            if (newspeak != speaking) {
-                speaking = newspeak;
-                speakBadge.text(speaking ? "Speaking" : "Silent");
-            }
 
             var outputBuffer = ape.outputBuffer;
 
@@ -237,11 +218,13 @@
             }
         };
         node.connect(buffer);
+        procs.push(buffer)
         return buffer;
     }
     function addStream(stream) {
 
         console.log("got new stream");
+        remoteStream = stream;
         //var audio = document.getElementById('audio2');
         //audio.srcObject = stream;
         //var farscope = doScope(stream,"farscope");
@@ -249,8 +232,9 @@
 
         var scope = doScopeNode(peer,"farscope");
         var buffproc = yourProc(scope);
+        var scope2 = doScopeNode(buffproc,"earscope");
 
-        buffproc.connect(ac.destination);
+        scope2.connect(ac.destination);
     }
     // configure local peerconnection and handlers
     function setupRTC(){
@@ -307,19 +291,20 @@
 
         navigator.mediaDevices.getUserMedia({audio: true, video: false})
             .then((stream) => {
-                var node = ac.createMediaStreamSource(stream);
-                var detect =  myProc(node);
-                var manl = doScopeNode(detect,"nearscope");
-    
-                if (pc.addTrack) {
+                    var node = ac.createMediaStreamSource(stream);
+                    var detect = myProc(node);
+                    var manl = doScopeNode(detect, "nearscope");
+                    localStream = stream;
+                    if (pc.addTrack) {
                         stream.getTracks().forEach(track => {
                             pc.addTrack(track, stream);
-                            console.log("added local track "+track.id);
+                            console.log("added local track " + track.id);
                         });
                     } else {
                         pc.addStream(stream);
                         console.log("added local stream");
                     }
+
                 }
             )
             .catch((e) => console.log('getUserMedia() error: ' + e.name));
@@ -386,10 +371,11 @@
 
     function makeDraw(canvName, anode) {
         var analyser = anode;
+        var speaking = false;
         var bufferLength = analyser.frequencyBinCount;
         var dataArray = new Uint8Array(bufferLength);
-        analyser.getByteTimeDomainData(dataArray);
         var canvas = document.getElementById(canvName);
+        var badge = document.getElementById(canvName+"-badge");
         var canvasCtx = canvas.getContext("2d");
 // oscilloscope - for debug.
         var draw = _ => {
@@ -408,10 +394,13 @@
 
             var sliceWidth = canvas.width * 1.0 / bufferLength;
             var x = 0;
+            var tot = 0.0;
 
             for (var i = 0; i < bufferLength; i++) {
 
+
                 var v = dataArray[i] / 128.0;
+                tot += Math.abs(dataArray[i]-128);
                 var y = v * canvas.height / 2;
 
                 if (i === 0) {
@@ -421,6 +410,13 @@
                 }
 
                 x += sliceWidth;
+            }
+            var mean = tot / bufferLength;
+            var newspeak =  (mean > 2.0);
+            if (newspeak != speaking) {
+                speaking = newspeak;
+                //console.log("newspeak "+newspeak+" mean "+mean);
+                badge.innerText = speaking ? "Speaking" : "Silent";
             }
             canvasCtx.lineTo(canvas.width, canvas.height / 2);
             canvasCtx.stroke();
