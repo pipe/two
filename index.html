@@ -22,6 +22,9 @@
     <div class="card-body">
         <button id="action" type="button" class="btn btn-primary btn-lg"></button>
         <button id="pause" type="button" class="btn btn-primary btn-lg">pause</button>
+        <button id="mute" type="button" class="btn btn-primary btn-lg">mute</button>
+
+        <span id="mode" class="badge badge-secondary">Direct</span>
     </div>
 </div>
 <div class="card">
@@ -83,6 +86,10 @@
     var procs =[];
     var backlog = 0;
     var tick;
+    var iamspeaking = false;
+    var mute = false;
+    var paused = false;
+
 
     // message stuff - used to create direct connection to peer
 
@@ -174,13 +181,12 @@
             avg += Math.abs(buff[sample]);
         }
         avg = avg / inputBuffer.length;
-        return  (avg > 0.0175) ;
+        return  (avg > 0.015) ;
     }
 
     function yourProc(node){
         var buffer = ac.createScriptProcessor(4096, 1, 1);
         console.log("made unrupt buffer of size "+buffer.bufferSize);
-        var paused = false;
         var silentcount = 0;
         var audiostash = [];
 
@@ -223,7 +229,7 @@
                     // store annotated version
                 }
                 backlog = audiostash.length /10;
-                if (paused) {
+                if (paused || iamspeaking) {
                     for (var sample = 0; sample < inputBuffer.length; sample++) {
                         outputData[sample] = 0.0; // silence
                     }
@@ -253,10 +259,26 @@
         procs.push(buffer)
         return buffer;
     }
+    function setMute(m){
+        var audioTracks = localStream.getAudioTracks();
+        if (audioTracks[0]) {
+            audioTracks[0].enabled = !m;
+        }
+    }
     function myProc(node){
+        var pb = $("#mute");
+        pb.click( _ => {
+            mute = !mute;
+            setMute(mute);
+            if (mute){
+                pb.text("unmute");
+            } else {
+                pb.text("mute");
+            }
+        } );
         var buffer = ac.createScriptProcessor(4096, 1, 1);
         console.log("made unrupt buffer of size "+buffer.bufferSize);
-
+        var silentcount = 0;
         buffer.onaudioprocess = ape => {
             var inputBuffer = ape.inputBuffer;
 
@@ -267,9 +289,27 @@
                 var inputData = inputBuffer.getChannelData(0);
                 var outputData = outputBuffer.getChannelData(0);
                 // Loop through the 4096 samples
+                var avg = 0.0;
+
                 for (var sample = 0; sample < inputBuffer.length; sample++) {
                     // make output equal to the same as the input
                     outputData[sample] = inputData[sample];
+                    avg += Math.abs(outputData[sample]); // sample
+                }
+                avg = avg / inputBuffer.length;
+                var silent =   (avg  < 0.015);
+                if (iamspeaking){
+                    if (silent){
+                        silentcount++;
+                    }
+                    if (silentcount > 3){
+                        iamspeaking = false;
+                    }
+                } else {
+                    if (!silent) {
+                        iamspeaking = true;
+                        silentcount =0;
+                    }
                 }
             }
         };
@@ -347,10 +387,13 @@
 
         navigator.mediaDevices.getUserMedia({audio: true, video: false})
             .then((stream) => {
+                    localStream = stream; // in case we need it
                     var node = ac.createMediaStreamSource(stream);
                     var detect = myProc(node);
                     var manl = doScopeNode(detect, "nearscope");
-                    localStream = stream;
+                    /*var dest = ac.createMediaStreamDestination();
+                    dest.connect(manl);
+                    stream = dest.stream*/
                     if (pc.addTrack) {
                         stream.getTracks().forEach(track => {
                             pc.addTrack(track, stream);
@@ -505,6 +548,9 @@
         setRole();
         tick = window.setInterval( t => {
             $('#unruptbuffer').css('width', backlog+"%").attr('aria-valuenow', backlog);
+            var playout = backlog > 1 ? "playing":"direct";
+            var mode = (iamspeaking || paused) ?"paused":playout;
+            $('#mode').text(mode);
         },250);
     });
 </script>
