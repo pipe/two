@@ -24,7 +24,8 @@
         <button id="pause" type="button" class="btn btn-primary btn-lg">pause</button>
         <button id="mute" type="button" class="btn btn-primary btn-lg">mute</button>
 
-        <span id="mode" class="badge badge-secondary">Direct</span>
+        <span id="mode" class="badge badge-primary">Direct</span>
+
     </div>
 </div>
 <div class="card">
@@ -55,22 +56,26 @@
     </div>
 </div>
 <div class="card">
-    <h4 class="card-header">Audio player</h4>
+    <h4 class="card-header">Buffered audio</h4>
     <div class="card-body">
         <div class="progress">
             <div id="unruptbuffer" class="progress-bar" role="progressbar" style="width: 100%" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
         </div>
+        <span id="version" class="badge badge-secondary">default</span>
     </div>
 </div>
+<script src="properties.js"></script>
 <script>
 
-    var configuration = {
+    var webRTCconfiguration = {
         "iceServers": [
             {urls: "stun:146.148.121.175:3478"},
             {urls: "turn:146.148.121.175:3478?transport=udp", 'credential': 'nexus5x', 'username': 'smartphone'},
         ],
         "bundlePolicy":"max-bundle","iceCandidatePoolSize":1
     };
+
+
 
     var pc; // actual peer connection to our friend
     var socket; // used to set up connection with our peer.
@@ -90,15 +95,8 @@
     var mute = false;
     var paused = false;
 
-    // as yet unused to add.....
-    // along with a settings page.
-    var properties = {
-        procFramesize: 4096,
-        scopeFramesize : 4096,
-        micSilenceThreshold : 0.0175,
-        farSilenceThreshold : 0.0175,
-        minSilenceForClip: 500.0,
-    };
+
+
 
 
     // message stuff - used to create direct connection to peer over WEBRTC
@@ -177,7 +175,7 @@
     function doScopeNode(node, scopename) {
         console.log("makeing scope node "+scopename);
         var analyser = ac.createAnalyser();
-        analyser.fftSize = 2048;
+        analyser.fftSize = properties.scopeFftSize;
         node.connect(analyser);
         makeDraw(scopename, analyser);
         scopes.push(analyser);
@@ -186,7 +184,7 @@
 
     // processing incoming audio
     function yourProc(node){
-        var buffer = ac.createScriptProcessor(4096, 1, 1);
+        var buffer = ac.createScriptProcessor(properties.procFramesize, 1, 1);
         console.log("made unrupt buffer of size "+buffer.bufferSize);
         var silentcount = 0;
         var audiostash = [];
@@ -215,7 +213,7 @@
                 var outputData = outputBuffer.getChannelData(0);
 
                 // we (almost) always stash the inbound data
-                if (audiostash.length < 1000) {
+                if (audiostash.length < properties.maxStashFrames) {
                     var buff = new Float32Array(inputBuffer.length);
                     var avg = 0.0;
 
@@ -224,7 +222,7 @@
                         avg += Math.abs(buff[sample]); // sample
                     }
                     avg = avg / inputBuffer.length;
-                    var silent =   (avg  < 0.015);
+                    var silent =   (avg  < properties.farSilenceThreshold);
                     if (silent){
                         silentcount++;
                     } else {
@@ -246,7 +244,7 @@
                         deleteme = false;
                         if (audiostash[0].silent){
                             console.log("next one is silent too");
-                            if (stash.silentcount > 3){
+                            if (stash.silentcount > properties.minFramesSilenceForPlay){
                                 console.log("silentcount = "+stash.silentcount);
                                 deleteme = true;
                                 stash = audiostash.pop();
@@ -286,7 +284,7 @@
         pb.click( _ => {
             setMute(!mute);
         });
-        var buffer = ac.createScriptProcessor(4096, 1, 1);
+        var buffer = ac.createScriptProcessor(properties.procFramesize, 1, 1);
         console.log("made unrupt buffer of size "+buffer.bufferSize);
         var silentcount = 0;
         buffer.onaudioprocess = ape => {
@@ -307,12 +305,12 @@
                     avg += Math.abs(outputData[sample]); // sample
                 }
                 avg = avg / inputBuffer.length;
-                var silent =   (avg  < 0.015);
+                var silent =   (avg  < properties.micSilenceThreshold);
                 if (iamspeaking){
                     if (silent){
                         silentcount++;
                     }
-                    if (silentcount > 3){
+                    if (silentcount > properties.minFramesSilenceForPause){
                         iamspeaking = false;
                     }
                 } else {
@@ -347,7 +345,7 @@
 
     // configure local peerconnection and handlers
     function setupRTC(){
-        pc = new RTCPeerConnection(configuration, null);
+        pc = new RTCPeerConnection(webRTCconfiguration, null);
         console.log("created peer connection");
 
         pc.onicecandidate = (e) => {
@@ -465,7 +463,7 @@
                 document.location = "index.html?"+"unruptId="+mid;
             });
         } else {
-            socket = new WebSocket( "wss://pi.pe/websocket/?finger=" + mid);
+            socket = new WebSocket( properties.websocketURL + mid);
             socket.onmessage = messageDeal;
             socket.onopen = (_) => {
                 console.log("connected as "+mid);
@@ -568,6 +566,7 @@
 
     $( document ).ready( _ => {
         setRole();
+        $('#version').text(properties.versionname);
         tick = window.setInterval( t => {
             $('#unruptbuffer').css('width', backlog+"%").attr('aria-valuenow', backlog);
             var playout = backlog > 1 ? "playing":"direct";
