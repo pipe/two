@@ -90,8 +90,18 @@
     var mute = false;
     var paused = false;
 
+    // as yet unused to add.....
+    // along with a settings page.
+    var properties = {
+        procFramesize: 4096,
+        scopeFramesize : 4096,
+        micSilenceThreshold : 0.0175,
+        farSilenceThreshold : 0.0175,
+        minSilenceForClip: 500.0,
+    };
 
-    // message stuff - used to create direct connection to peer
+
+    // message stuff - used to create direct connection to peer over WEBRTC
 
     function messageDeal(event){
         console.log("message is " + event.data);
@@ -117,7 +127,7 @@
             case "answer":
                 pc.setRemoteDescription(data)
                     .then( _ => {
-                    var act = $("#action").text("hangup");
+                    $("#action").text("hangup");
                 })
                     .catch(e => console.log("set Remote answer error" + e) );
                 break;
@@ -160,11 +170,10 @@
         window.location.href=window.location.href;
     }
 
-    function doScope(stream, scopename){
-        var node = ac.createMediaStreamSource(stream);
-        return doScopeNode(node,scopename);
-    }
 
+    // webaudio processing
+
+    // display waveform for diagnostics
     function doScopeNode(node, scopename) {
         console.log("makeing scope node "+scopename);
         var analyser = ac.createAnalyser();
@@ -175,15 +184,7 @@
         return analyser;
     }
 
-    function isBuffSilent(buff){
-        var avg = 0.0;
-        for (var sample = 0; sample < inputBuffer.length; sample++) {
-            avg += Math.abs(buff[sample]);
-        }
-        avg = avg / inputBuffer.length;
-        return  (avg > 0.015) ;
-    }
-
+    // processing incoming audio
     function yourProc(node){
         var buffer = ac.createScriptProcessor(4096, 1, 1);
         console.log("made unrupt buffer of size "+buffer.bufferSize);
@@ -191,12 +192,16 @@
         var audiostash = [];
 
         var pb = $("#pause");
+        var oldmute = false;
         pb.click( _ => {
             paused = !paused;
             if (paused){
                 pb.text("unpause");
+                oldmute = mute;
+                setMute(true);
             } else {
                 pb.text("pause");
+                setMute(oldmute);
             }
         } );
         buffer.onaudioprocess = ape => {
@@ -259,23 +264,28 @@
         procs.push(buffer)
         return buffer;
     }
+
+    // mute management
     function setMute(m){
+        var pb = $("#mute");
+        mute = m;
+        if (m){
+            pb.text("unmute");
+        } else {
+            pb.text("mute");
+        }
         var audioTracks = localStream.getAudioTracks();
         if (audioTracks[0]) {
             audioTracks[0].enabled = !m;
         }
     }
+
+    // processing audio from the local microphone
     function myProc(node){
         var pb = $("#mute");
         pb.click( _ => {
-            mute = !mute;
-            setMute(mute);
-            if (mute){
-                pb.text("unmute");
-            } else {
-                pb.text("mute");
-            }
-        } );
+            setMute(!mute);
+        });
         var buffer = ac.createScriptProcessor(4096, 1, 1);
         console.log("made unrupt buffer of size "+buffer.bufferSize);
         var silentcount = 0;
@@ -317,6 +327,8 @@
         procs.push(buffer)
         return buffer;
     }
+
+    // called when webRTC presents us with a fresh remote audio stream
     function addStream(stream) {
 
         console.log("got new stream");
@@ -332,6 +344,7 @@
 
         scope2.connect(ac.destination);
     }
+
     // configure local peerconnection and handlers
     function setupRTC(){
         pc = new RTCPeerConnection(configuration, null);
@@ -354,19 +367,24 @@
                 stopCall();
             }
         };
+        // specification of WEBRTC is in flux - so we test to see if ontrack callback exists
         if ('ontrack' in pc) {
+            // if so we use it
             pc.ontrack = (event) => {
                 var stream = event.streams[0];
                 console.log("got remote track " + stream.kind);
                 addStream(stream);
             };
         } else {
+            // if not we use add stream instead
             pc.onaddstream = (event) => {
                 var stream = event.stream;
                 console.log("got remote stream " + stream.kind);
                 addStream(stream);
             }
         }
+
+        // use this to determine the state of the 'hangup' button and send any candidates we found quickly
         pc.onsignalingstatechange = (evt) => {
             console.log("signalling state is " + pc.signalingState);
             if (pc.signalingState == 'stable') {
@@ -381,6 +399,9 @@
             }
         };
     }
+
+
+    // plumb the local audio together.
     function setupAudio() {
         var AudioContext = window.AudioContext || window.webkitAudioContext;
         ac = new AudioContext();
@@ -468,6 +489,7 @@
         }
     }
 
+    // thing that draws the scopes...
     function makeDraw(canvName, anode) {
         var analyser = anode;
         var speaking = false;
