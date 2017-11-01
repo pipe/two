@@ -13,7 +13,7 @@ var properties = {
                                   // used to trim silence from playout
                                   // default 0.0175 ok on imacs
 
-    minFramesSilenceForPause: 1, // number of non-silent frames before we pause. default 3 (300ms)
+    minFramesSilenceForPause: 4, // number of non-silent frames before we pause. default 3 (300ms)
     minFramesSilenceForPlay: 3,  // number of silent frames before we start to clip silence from playback. default 3 (300ms)
     maxStashFrames: 1000, // longest possible pause (in frames). default 1000 -> 100 sec
     websocketURL: "wss://pi.pe/websocket/?finger=" // where to find the redezvous server.
