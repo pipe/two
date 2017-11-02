@@ -3,7 +3,6 @@
  */
 var properties = {
     versionname :"Default", // update this to indicate which version of the settings this is
-    doscopes: true, // should the scopes be shown ?
     procFramesize: 4096, // how many samples (at 44k1 Hz) in a frame. default 4096 ->  ~100ms
                          // this impacts the latency - but go too low and the audio will break up
     scopeFftSize : 2048, // number of samples in the FFT for the oscilloscope. default 2048 seems ok
