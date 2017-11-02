@@ -75,7 +75,7 @@
         </div>
     </div>
 </div>
-
+<audio id="out" ></audio>
 <script src="properties.js"></script>
 <script>
 
@@ -360,8 +360,8 @@
 
         console.log("got new stream");
         remoteStream = stream;
-        //var audio = document.getElementById('audio2');
-        //audio.srcObject = stream;
+        var audio = document.getElementById('out');
+        audio.srcObject = stream;
         //var farscope = doScope(stream,"farscope");
         var peer = yourac.createMediaStreamSource(stream);
 
