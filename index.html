@@ -28,27 +28,38 @@
 
     </div>
 </div>
-<div class="card">
-    <h4 class="card-header">Audio waveform</h4>
-    <div class="card-body">
-        <div class="container">
-            <div class="row">
-                <div class="col-sm card">
-                    <div class="card-header">This Microphone <span id="nearscope-badge" class="badge badge-secondary">Silent</span></div>
-                    <div class="card-body">
-                    <canvas id="nearscope" style="height:200px;" >Scope</canvas>
+
+<a class="btn btn-primary" data-toggle="collapse" href="#collapseExample" aria-expanded="false"
+   aria-controls="collapseExample">
+    show/hide waveform graphs
+</a>
+<div class="collapse" id="collapseExample">
+
+    <div class="card">
+        <h4 class="card-header">Audio waveform</h4>
+        <div class="card-body">
+            <div class="container">
+                <div class="row">
+                    <div class="col-sm card">
+                        <div class="card-header">This Microphone <span id="nearscope-badge"
+                                                                       class="badge badge-secondary">Silent</span></div>
+                        <div class="card-body">
+                            <canvas id="nearscope" style="height:200px;">Scope</canvas>
+                        </div>
                     </div>
-                </div>
-                <div class="col-sm card">
-                    <div class="card-header">Unrupt Buffer <span id="earscope-badge" class="badge badge-secondary">Silent</span></div>
-                    <div class="card-body">
-                        <canvas id="earscope" style="height:200px;" >Scope</canvas>
+                    <div class="col-sm card">
+                        <div class="card-header">Unrupt Buffer <span id="earscope-badge" class="badge badge-secondary">Silent</span>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="earscope" style="height:200px;">Scope</canvas>
+                        </div>
                     </div>
-                </div>
-                <div class="col-sm card">
-                    <div class="card-header">Far Microphone <span id="farscope-badge" class="badge badge-secondary">Silent</span> </div>
-                    <div class="card-body">
-                    <canvas id="farscope" style="height:200px;" >Scope</canvas>
+                    <div class="col-sm card">
+                        <div class="card-header">Far Microphone <span id="farscope-badge" class="badge badge-secondary">Silent</span>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="farscope" style="height:200px;">Scope</canvas>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -59,8 +70,10 @@
     <h4 class="card-header">Buffered audio</h4>
     <div class="card-body">
         <div class="progress">
-            <div id="unruptbuffer" class="progress-bar" role="progressbar" style="width: 100%" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
+            <div id="unruptbuffer_sil" class="progress-bar " role="progressbar"  aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
+            <div id="unruptbuffer_spk" class="progress-bar progress-bar-striped bg-warning" role="progressbar"  aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
         </div>
+        <span id="unruptbuffer_len" class="badge pull-right"></span>
         <span id="version" class="badge badge-secondary">default</span>
     </div>
 </div>
@@ -89,7 +102,9 @@
     var remoteStream;
     var scopes= [];
     var procs =[];
-    var backlog = 0;
+    var backlog =0;
+    var backlog_sil = 0;
+    var backlog_spk = 0;
     var tick;
     var iamspeaking = false;
     var mute = false;
@@ -225,8 +240,10 @@
                     var silent =   (avg  < properties.farSilenceThreshold);
                     if (silent){
                         silentcount++;
+                        backlog_sil++;
                     } else {
                         silentcount =0;
+                        backlog_spk++;
                     }
                     audiostash.unshift({silent: silent, buff:buff, silentcount: silentcount});
                     // store annotated version
@@ -238,7 +255,14 @@
                     }
                 } else {
                     var stash = audiostash.pop();
+                    if (stash.silent){
+                        backlog_sil--;
+                    } else {
+                        backlog_spk--;
+                    }
+
                     var deleteme = (stash.silent);
+
                     while ((audiostash.length > 0) && (deleteme)){
                         console.log("have backlog"+audiostash.length);
                         deleteme = false;
@@ -248,6 +272,11 @@
                                 console.log("silentcount = "+stash.silentcount);
                                 deleteme = true;
                                 stash = audiostash.pop();
+                                if (stash.silent){
+                                    backlog_sil--;
+                                } else {
+                                    backlog_spk--;
+                                }
                             }
                         }
                     }
@@ -568,7 +597,13 @@
         setRole();
         $('#version').text(properties.versionname);
         tick = window.setInterval( t => {
-            $('#unruptbuffer').css('width', backlog+"%").attr('aria-valuenow', backlog);
+            var scale = properties.maxStashFrames/100.0;
+            var spk = backlog_spk/scale;
+            var sil = backlog_sil/scale;
+            var timeline = Math.floor((backlog_spk+backlog_sil) * properties.procFramesize / 44100.0);
+            $('#unruptbuffer_len').text(timeline+" seconds");
+            $('#unruptbuffer_sil').css('width', sil+"%").attr('aria-valuenow', sil);
+            $('#unruptbuffer_spk').css('width', spk+"%").attr('aria-valuenow', spk);
             var playout = backlog > 1 ? "playing":"direct";
             var mode = (iamspeaking || paused) ?"paused":playout;
             $('#mode').text(mode);
