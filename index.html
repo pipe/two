@@ -93,7 +93,8 @@
     var socket; // used to set up connection with our peer.
     var mid;
     var fid;
-    var ac;
+    var myac;
+    var yourac;
     var initiator;
     var lcandyStash = [];
     var rcandyStash = [];
@@ -186,7 +187,7 @@
     // webaudio processing
 
     // display waveform for diagnostics
-    function doScopeNode(node, scopename) {
+    function doScopeNode(ac, node, scopename) {
         console.log("makeing scope node "+scopename);
         var analyser = ac.createAnalyser();
         analyser.fftSize = properties.scopeFftSize;
@@ -198,7 +199,7 @@
 
     // processing incoming audio
     function yourProc(node){
-        var buffer = ac.createScriptProcessor(properties.procFramesize, 1, 1);
+        var buffer = yourac.createScriptProcessor(properties.procFramesize, 1, 1);
         console.log("made unrupt buffer of size "+buffer.bufferSize);
         var silentcount = 0;
         var audiostash = [];
@@ -312,7 +313,7 @@
         pb.click( _ => {
             setMute(!mute);
         });
-        var buffer = ac.createScriptProcessor(properties.procFramesize, 1, 1);
+        var buffer = myac.createScriptProcessor(properties.procFramesize, 1, 1);
         console.log("made unrupt buffer of size "+buffer.bufferSize);
         var silentcount = 0;
         buffer.onaudioprocess = ape => {
@@ -362,13 +363,12 @@
         //var audio = document.getElementById('audio2');
         //audio.srcObject = stream;
         //var farscope = doScope(stream,"farscope");
-        var peer = ac.createMediaStreamSource(stream);
+        var peer = yourac.createMediaStreamSource(stream);
 
-        var scope = doScopeNode(peer,"farscope");
+        var scope = doScopeNode(yourac,peer,"farscope");
         var buffproc = yourProc(scope);
-        var scope2 = doScopeNode(buffproc,"earscope");
-
-        scope2.connect(ac.destination);
+        var scope2 = doScopeNode(yourac,buffproc,"earscope");
+        scope2.connect(yourac.destination);
     }
 
     // configure local peerconnection and handlers
@@ -430,24 +430,25 @@
     // plumb the local audio together.
     function setupAudio() {
         var AudioContext = window.AudioContext || window.webkitAudioContext;
-        ac = new AudioContext();
+        myac = new AudioContext();
+        yourac = new AudioContext();
 
         navigator.mediaDevices.getUserMedia({audio: true, video: false})
             .then((stream) => {
                     localStream = stream; // in case we need it
-                    var node = ac.createMediaStreamSource(stream);
+                    var node = myac.createMediaStreamSource(stream);
                     var detect = myProc(node);
-                    var manl = doScopeNode(detect, "nearscope");
-                    /*var dest = ac.createMediaStreamDestination();
-                    dest.connect(manl);
-                    stream = dest.stream*/
+                    var manl = doScopeNode(myac,detect, "nearscope");
+                    var dest = myac.createMediaStreamDestination();
+                    manl.connect(dest);
+                    var lstream = dest.stream;
                     if (pc.addTrack) {
                         stream.getTracks().forEach(track => {
-                            pc.addTrack(track, stream);
+                            pc.addTrack(track, lstream);
                             console.log("added local track " + track.id);
                         });
                     } else {
-                        pc.addStream(stream);
+                        pc.addStream(lstream);
                         console.log("added local stream");
                     }
 
