@@ -389,7 +389,7 @@
         };
         pc.oniceconnectionstatechange = (e) => {
             console.log("ice state is changed "+pc.iceConnectionState);
-            if (pc.iceConnectionState === "disconnected"){
+            if (pc.iceConnectionState === "failed"){
                 stopCall();
             }
         };
