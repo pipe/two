@@ -8,6 +8,21 @@
 
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css" integrity="sha384-PsH8R72JQ3SOdhVi3uxftmaW6Vc51MKb0q5P2rRUpPvrszuE4W1povHYgTpBfshb" crossorigin="anonymous">
+
+    <style>
+        #chooseAction, #chosenAction, #audioInfo{
+            display:none;
+        }
+
+        #in {
+            transform: rotateY(180deg);
+        }
+
+        video {
+            width: 320px;
+        }
+    </style>
+
 </head>
 <body>
 <h1 id="title" class="text-center">Unrupt Calls</h1>
@@ -19,16 +34,24 @@
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/js/bootstrap.min.js" integrity="sha384-alpBpkh1PFOepccYVYDB4do5UnbKysX5WZXm3XxPqe5iKTfUKjNkCk9SaVuEZflJ" crossorigin="anonymous"></script>
 <div class="card">
     <h4 class="card-header">Call</h4>
-    <div class="card-body">
-        <button id="action" type="button" class="btn btn-primary btn-lg"></button>
-        <button id="pause" type="button" class="btn btn-primary btn-lg">pause</button>
-        <button id="mute" type="button" class="btn btn-primary btn-lg">mute</button>
 
-        <span id="mode" class="badge badge-primary">Direct</span>
+    <div class="card-body">
+        <div id="chooseAction">
+            <h5>Make Shareable Page</h5>
+            <button id="chooseActionAudio" type="button" class="btn btn-primary btn-lg">Audio</button>
+            <button id="chooseActionVideo" type="button" class="btn btn-primary btn-lg">Audio &amp; Video</button>
+        </div>
+        <div id="chosenAction">
+            <button id="action" type="button" class="btn btn-primary btn-lg"></button>
+            <button id="pause" type="button" class="btn btn-primary btn-lg">pause</button>
+            <button id="mute" type="button" class="btn btn-primary btn-lg">mute</button>
+
+            <span id="mode" class="badge badge-primary">Direct</span>
+        </div>
 
     </div>
 </div>
-<div class="card">
+<div id="audioInfo" class="card">
     <h4 class="card-header">Buffered audio</h4>
     <div class="card-body">
         <div class="progress">
@@ -38,36 +61,41 @@
         <span id="unruptbuffer_len" class="badge pull-right"></span>
         <span id="version" class="badge badge-secondary">default</span>
     </div>
-</div>
-<a class="btn btn-primary" data-toggle="collapse" href="#collapseExample" aria-expanded="false"
-   aria-controls="collapseExample">
-    show/hide waveform graphs
-</a>
-<div class="collapse" id="collapseExample">
-    <div class="card">
-        <h4 class="card-header">Audio waveform</h4>
-        <div class="card-body">
-            <div class="container">
-                <div class="row">
-                    <div class="col-sm card">
-                        <div class="card-header">This Microphone <span id="nearscope-badge"
-                                                                       class="badge badge-secondary">Silent</span></div>
-                        <div class="card-body">
-                            <canvas id="nearscope" style="height:200px;width:200px;">Scope</canvas>
+    <a class="btn btn-primary" data-toggle="collapse" href="#collapseExample" aria-expanded="false" aria-controls="collapseExample">
+        show/hide waveform graphs
+    </a>
+    <div class="collapse" id="collapseExample">
+        <div class="card">
+            <h4 class="card-header">Audio waveform</h4>
+            <div class="card-body">
+                <div class="container">
+                    <div class="row">
+                        <div class="col-sm card">
+                            <div class="card-header">This Microphone <span id="nearscope-badge"
+                                                                            class="badge badge-secondary">Silent</span></div>
+                            <div class="card-body">
+                                <canvas id="nearscope" style="height:200px;width:200px;">Scope</canvas>
+                            </div>
+                            <div id="thisUser">
+
+                            </div>
                         </div>
-                    </div>
-                    <div class="col-sm card">
-                        <div class="card-header">Unrupt Buffer <span id="earscope-badge" class="badge badge-secondary">Silent</span>
+                        <div class="col-sm card">
+                            <div class="card-header">Unrupt Buffer <span id="earscope-badge" class="badge badge-secondary">Silent</span>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="earscope" style="height:200px;width:200px;">Scope</canvas>
+                            </div>
                         </div>
-                        <div class="card-body">
-                            <canvas id="earscope" style="height:200px;width:200px;">Scope</canvas>
-                        </div>
-                    </div>
-                    <div class="col-sm card">
-                        <div class="card-header">Far Microphone <span id="farscope-badge" class="badge badge-secondary">Silent</span>
-                        </div>
-                        <div class="card-body">
-                            <canvas id="farscope" style="height:200px;width:200px;">Scope</canvas>
+                        <div class="col-sm card">
+                            <div class="card-header">Far Microphone <span id="farscope-badge" class="badge badge-secondary">Silent</span>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="farscope" style="height:200px;width:200px;">Scope</canvas>
+                            </div>
+                            <div id="otherUser">
+
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -75,7 +103,7 @@
         </div>
     </div>
 </div>
-<audio id="out" ></audio>
+
 <script src="properties.js"></script>
 <script>
 
@@ -109,17 +137,16 @@
     var iamspeaking = false;
     var mute = false;
     var paused = false;
-
-
-
+    var videoEnabled = false;
+    var peerConnectionOfferAnswerCriteria =  {offerToReceiveAudio: true, offerToReceiveVideo: false };
 
 
     // message stuff - used to create direct connection to peer over WEBRTC
 
     function messageDeal(event){
-        console.log("message is " + event.data);
+        //console.log("message is ", event.data);
         var data = JSON.parse(event.data);
-        console.log("data is " + JSON.stringify(data));
+        console.log("message data is ", data);
         if (data.to != mid){
             alert("message mixup");
         }
@@ -129,39 +156,45 @@
                     fid = data.from;
                 }
                 pc.setRemoteDescription(data).then( _ =>
-                    pc.createAnswer({offerToReceiveAudio: true, offerToReceiveVideo: false}).then(ans =>
+                    pc.createAnswer(peerConnectionOfferAnswerCriteria).then(ans =>
                         pc.setLocalDescription(ans).then( _ =>
                             sendMessage(fid, mid, "answer", ans.sdp)
                         )
                     )
                 )
-                    .catch((e) => console.log("set Remote offer error" + e));
+                    .catch((e) => console.log("set Remote offer error", e));
                 break;
             case "answer":
                 pc.setRemoteDescription(data)
                     .then( _ => {
                     $("#action").text("hangup");
                 })
-                    .catch(e => console.log("set Remote answer error" + e) );
+                    .catch(e => console.log("set Remote answer error", e) );
                 break;
             case "candidate":
                 var jc = {
                     sdpMLineIndex: 0,
                     candidate: data.sdp
                 };
-                console.log("adding candidate " + JSON.stringify(jc));
+                console.log("adding candidate ", jc);
                 var nc = new RTCIceCandidate(jc);
                 pc.addIceCandidate(nc)
                     .then( _ => console.log("added remote candidate"))
-                    .catch((e) => console.log("couldn't add candidate " + e));
+                    .catch((e) => console.log("couldn't add candidate ", e));
                 break;
         }
     }
 
     function sendMessage(to,from,type,data){
-        var messageJ = {to:to,from:from,type:type,sdp:data};
+        var messageJ = {
+            to:to,
+            from:from,
+            type:type,
+            sdp:data
+        };
+
         var message = JSON.stringify(messageJ);
-        console.log("sending "+message);
+        console.log("sending ", messageJ);
         socket.send(message);
     }
 
@@ -171,12 +204,12 @@
         lcandyStash = [];
         rcandyStash = [];
         fid = cid;
-        pc.createOffer({offerToReceiveAudio: true, offerToReceiveVideo: false})
+        pc.createOffer(peerConnectionOfferAnswerCriteria)
             .then(desc => {
-                    console.log("offer created");
-                    pc.setLocalDescription(desc).then( d => sendMessage(fid,mid,desc.type,desc.sdp));
+                    console.log("offer created",);
+                    pc.setLocalDescription(desc).then( d => sendMessage(fid, mid, desc.type, desc.sdp));
                 })
-            .catch(e => console.log("offer not created due to "+e) );
+            .catch(e => console.log("offer not created due to ", e) );
     }
 
     function stopCall(){
@@ -188,7 +221,7 @@
 
     // display waveform for diagnostics
     function doScopeNode(ac, node, scopename) {
-        console.log("makeing scope node "+scopename);
+        console.log("making scope node ", scopename);
         var analyser = ac.createAnalyser();
         analyser.fftSize = properties.scopeFftSize;
         node.connect(analyser);
@@ -200,7 +233,7 @@
     // processing incoming audio
     function yourProc(node){
         var buffer = yourac.createScriptProcessor(properties.procFramesize, 1, 1);
-        console.log("made unrupt buffer of size "+buffer.bufferSize);
+        console.log("made unrupt buffer of size ", buffer.bufferSize, buffer);
         var silentcount = 0;
         var audiostash = [];
 
@@ -264,12 +297,12 @@
                     var deleteme = (stash.silent);
 
                     while ((audiostash.length > 0) && (deleteme)){
-                        console.log("have backlog"+audiostash.length);
+                        console.log("have backlog", audiostash.length);
                         deleteme = false;
                         if (audiostash[0].silent){
                             console.log("next one is silent too");
                             if (stash.silentcount > properties.minFramesSilenceForPlay){
-                                console.log("silentcount = "+stash.silentcount);
+                                console.log("silentcount = ", stash.silentcount);
                                 deleteme = true;
                                 stash = audiostash.pop();
                                 if (stash.silent){
@@ -314,7 +347,7 @@
             setMute(!mute);
         });
         var buffer = myac.createScriptProcessor(properties.procFramesize, 1, 1);
-        console.log("made unrupt buffer of size "+buffer.bufferSize);
+        console.log("made unrupt buffer of size ", buffer.bufferSize);
         var silentcount = 0;
         buffer.onaudioprocess = ape => {
             var inputBuffer = ape.inputBuffer;
@@ -358,16 +391,24 @@
     // called when webRTC presents us with a fresh remote audio stream
     function addStream(stream) {
 
-        console.log("got new stream");
+        console.log("got new stream", stream);
         remoteStream = stream;
-        var audio = document.getElementById('out');
-        audio.srcObject = stream;
-        //var farscope = doScope(stream,"farscope");
+        var mediaElement = document.getElementById('out');
+        mediaElement.srcObject = stream;
+        mediaElement.muted = true;
+
+        mediaElement.onloadedmetadata = function(e) {
+            mediaElement.play();
+            //mediaElement.muted = true;
+        };
+
         var peer = yourac.createMediaStreamSource(stream);
 
-        var scope = doScopeNode(yourac,peer,"farscope");
+        console.log('Sample Rate is', yourac.sampleRate);
+
+        var scope = doScopeNode(yourac, peer, "farscope");
         var buffproc = yourProc(scope);
-        var scope2 = doScopeNode(yourac,buffproc,"earscope");
+        var scope2 = doScopeNode(yourac, buffproc, "earscope");
         scope2.connect(yourac.destination);
     }
 
@@ -377,10 +418,10 @@
         console.log("created peer connection");
 
         pc.onicecandidate = (e) => {
-            console.log("local ice candidate "+JSON.stringify(e.candidate));
+            console.log("local ice candidate", e.candidate);
             if (e.candidate != null) {
                 if (pc.signalingState == 'stable') {
-                    sendMessage(fid,mid,"candidate",e.candidate.candidate);
+                    sendMessage(fid, mid, "candidate", e.candidate.candidate);
                 } else {
                     console.log("stashing ice candidate");
                     lcandyStash.push(e.candidate);
@@ -388,7 +429,7 @@
             }
         };
         pc.oniceconnectionstatechange = (e) => {
-            console.log("ice state is changed "+pc.iceConnectionState);
+            console.log("ice state is changed", pc.iceConnectionState);
             if (pc.iceConnectionState === "failed"){
                 stopCall();
             }
@@ -398,26 +439,26 @@
             // if so we use it
             pc.ontrack = (event) => {
                 var stream = event.streams[0];
-                console.log("got remote track " + stream.kind);
+                console.log("got remote track ", stream.kind);
                 addStream(stream);
             };
         } else {
             // if not we use add stream instead
             pc.onaddstream = (event) => {
                 var stream = event.stream;
-                console.log("got remote stream " + stream.kind);
+                console.log("got remote stream ", stream.kind);
                 addStream(stream);
             }
         }
 
         // use this to determine the state of the 'hangup' button and send any candidates we found quickly
         pc.onsignalingstatechange = (evt) => {
-            console.log("signalling state is " + pc.signalingState);
+            console.log("signalling state is ", pc.signalingState);
             if (pc.signalingState == 'stable') {
                 var can;
                 while (can = lcandyStash.pop()) {
                     console.log("popping candidate off stash")
-                    sendMessage(fid,mid,"candidate",can.candidate);
+                    sendMessage(fid, mid, "candidate", can.candidate);
                 }
                 var act = $("#action");
                 act.text("hangup call");
@@ -426,35 +467,46 @@
         };
     }
 
-
     // plumb the local audio together.
     function setupAudio() {
         var AudioContext = window.AudioContext || window.webkitAudioContext;
         myac = new AudioContext();
         yourac = new AudioContext();
 
-        navigator.mediaDevices.getUserMedia({audio: true, video: false})
+        navigator.mediaDevices.getUserMedia({audio: true, video: videoEnabled})
             .then((stream) => {
-                    localStream = stream; // in case we need it
-                    var node = myac.createMediaStreamSource(stream);
-                    var detect = myProc(node);
-                    var manl = doScopeNode(myac,detect, "nearscope");
-                    var dest = myac.createMediaStreamDestination();
-                    manl.connect(dest);
-                    var lstream = dest.stream;
-                    if (pc.addTrack) {
-                        stream.getTracks().forEach(track => {
-                            pc.addTrack(track, lstream);
-                            console.log("added local track " + track.id);
-                        });
-                    } else {
-                        pc.addStream(lstream);
-                        console.log("added local stream");
-                    }
+                if (videoEnabled) {
+                    var ourMediaElement = document.getElementById('in');
+                    ourMediaElement.srcObject = stream;
 
+                    ourMediaElement.onloadedmetadata = function(e) {
+                        ourMediaElement.play();
+                    };
                 }
-            )
-            .catch((e) => console.log('getUserMedia() error: ' + e.name));
+
+                localStream = stream; // in case we need it
+                var node = myac.createMediaStreamSource(stream);
+                var detect = myProc(node);
+                var manl = doScopeNode(myac, detect, "nearscope");
+                var dest = myac.createMediaStreamDestination();
+                manl.connect(dest);
+                var lstream = dest.stream;
+                if (pc.addTrack) {
+                    stream.getTracks().forEach(track => {
+                        pc.addTrack(track, lstream);
+                        console.log("added local track ", track.id, track.kind);
+                    });
+                } else {
+                    stream.getTracks().forEach(track => {
+                        if (track.kind === 'video') {
+                            lstream.addTrack(track);
+                        }
+                    });
+                    pc.addStream(lstream);
+                    console.log("added local stream");
+                }
+            })
+            .catch((e) => console.log('getUserMedia() error:', e.name));
 
     }
 
@@ -467,6 +519,10 @@
     function setRole() {
         var cid = $.getUrlVar("unruptId");
         mid = localStorage['unruptId'];
+        var chooseAction = $("#chooseAction");
+        var chosenAction = $("#chosenAction");
+        var chooseActionAudio = $("#chooseActionAudio");
+        var chooseActionVideo = $("#chooseActionVideo");
         var act = $("#action");
         if (!mid) {
             var array = new Uint32Array(8);
@@ -483,19 +539,25 @@
                 hexCodes.push(paddedValue);
             }
             mid = hexCodes.join("").toLowerCase();
-            console.log("mid ="+mid);
+            console.log("mid =", mid);
             localStorage['unruptId'] = mid;
         }
         if (cid == null){
-            act.text("make shareable page");
-            act.click( _ => {
-                document.location = "index.html?"+"unruptId="+mid;
+            chooseAction.show();
+            chooseActionAudio.click( _ => {
+                document.location = "index.html?" + "unruptId=" + mid;
+            });
+            chooseActionVideo.click( _ => {
+                document.location = "index.html?" + "unruptId=" + mid + "&video=1";
             });
         } else {
+            chosenAction.show();
+            $('#audioInfo').show();
+
             socket = new WebSocket( properties.websocketURL + mid);
             socket.onmessage = messageDeal;
             socket.onopen = (_) => {
-                console.log("connected as "+mid);
+                console.log("connected as", mid);
                 setupRTC();
                 setupAudio();
                 initiator = (mid === cid);
@@ -507,10 +569,10 @@
                 }
             };
             socket.onerror = (e) => {
-                console.log("can't open websocket "+JSON.stringify(e));
+                console.log("can't open websocket", e);
             };
             socket.onclose = (e) => {
-                console.log(" websocket closed "+JSON.stringify(e));
+                console.log(" websocket closed", e);
             };
 
         }
@@ -523,7 +585,7 @@
         var bufferLength = analyser.frequencyBinCount;
         var dataArray = new Uint8Array(bufferLength);
         var canvas = document.getElementById(canvName);
-        var badge = document.getElementById(canvName+"-badge");
+        var badge = document.getElementById(canvName + "-badge");
         var canvasCtx = canvas.getContext("2d");
 // oscilloscope - for debug.
         var draw = _ => {
@@ -594,20 +656,50 @@
     });
 
     $( document ).ready( _ => {
+        videoEnabled = $.getUrlVar("video") == '1';
+
+        if(videoEnabled) {
+            peerConnectionOfferAnswerCriteria = {};
+            var otherUserMediaElement = document.createElement('video');
+            otherUserMediaElement.id = 'out';
+            otherUserMediaElement.muted = true;
+            document.getElementById('otherUser').appendChild(otherUserMediaElement);
+
+            var thisUserMediaElement = document.createElement('video');
+            thisUserMediaElement.id = 'in';
+            thisUserMediaElement.muted = true;
+            document.getElementById('thisUser').appendChild(thisUserMediaElement);
+
+
+        } else {
+            var mediaElement = document.createElement('audio');
+            mediaElement.id = 'out';
+            mediaElement.muted = true;
+            document.body.appendChild(mediaElement);
+        }
+
         setRole();
+
         $('#version').text(properties.versionname);
         tick = window.setInterval( t => {
-            var scale = properties.maxStashFrames/100.0;
-            var spk = backlog_spk/scale;
-            var sil = backlog_sil/scale;
-            var timeline = Math.floor((backlog_spk+backlog_sil) * properties.procFramesize / 44100.0);
-            $('#unruptbuffer_len').text(timeline+" seconds");
-            $('#unruptbuffer_sil').css('width', sil+"%").attr('aria-valuenow', sil);
-            $('#unruptbuffer_spk').css('width', spk+"%").attr('aria-valuenow', spk);
-            var playout = backlog > 1 ? "playing":"direct";
-            var mode = (iamspeaking || paused) ?"paused":playout;
+            var scale = properties.maxStashFrames / 100.0;
+            var spk = backlog_spk / scale;
+            var sil = backlog_sil / scale;
+            var timeline = Math.floor((backlog_spk + backlog_sil) * properties.procFramesize / 44100.0);
+            $('#unruptbuffer_len').text(timeline + " seconds");
+            $('#unruptbuffer_sil').css('width', sil + "%").attr('aria-valuenow', sil);
+            $('#unruptbuffer_spk').css('width', spk + "%").attr('aria-valuenow', spk);
+            var playout = backlog > 1 ? "playing" : "direct";
+            var mode = (iamspeaking || paused) ? "paused" : playout;
             $('#mode').text(mode);
-        },250);
+            if (remoteStream && videoEnabled) {
+                if (mode === "paused") {
+                    otherUserMediaElement.pause();
+                } else {
+                    otherUserMediaElement.play();
+                }
+            }
+        }, 250);
     });
 </script>
 </body>
