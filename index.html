@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css" integrity="sha384-PsH8R72JQ3SOdhVi3uxftmaW6Vc51MKb0q5P2rRUpPvrszuE4W1povHYgTpBfshb" crossorigin="anonymous">
 
     <style>
-        #chooseAction, #chosenAction, #audioInfo{
+        #chooseAction, #chosenAction, #audioInfo, #videoRow{
             display:none;
         }
 
@@ -20,6 +20,25 @@
 
         video {
             width: 320px;
+        }
+
+        #otherUser, #thisUser {
+            position: relative;
+            width: 320px;
+            height: 240px;
+        }
+
+        .playpause {
+            display: none;
+            width:25%;
+            position:absolute;
+            left:0;
+            right:0;
+            bottom:0;
+            margin:auto;
+            background-size:contain;
+            background-position: center;
+            z-index: 99999;
         }
     </style>
 
@@ -32,6 +51,70 @@
 <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.3/umd/popper.min.js" integrity="sha384-vFJXuSJphROIrBnz7yo7oB41mKfc8JzQZiCq4NCceLEaO4IHwicKwpJf9c9IpFgh" crossorigin="anonymous"></script>
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/js/bootstrap.min.js" integrity="sha384-alpBpkh1PFOepccYVYDB4do5UnbKysX5WZXm3XxPqe5iKTfUKjNkCk9SaVuEZflJ" crossorigin="anonymous"></script>
+
+<div id="audioInfo" class="card">
+    <div>
+        <div class="card">
+            <h4 class="card-header">Media</h4>
+            <div class="card-body">
+                <div class="container">
+                    <div class="row" id="videoRow">
+                        <div class="col-sm card">
+                            <div class="card-header">Far Camera</div>
+                            <div class="card-body">
+                                <div id="otherUser">
+                                    <div id="pauseOther" class="playpause">
+                                        <object data="pause.svg"></object>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm card"></div>
+                        <div class="col-sm card">
+                            <div class="card-header">This Camera</div>
+                            <div class="card-body">
+                                <div id="thisUser"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-sm card">
+                            <div class="card-header">Far Microphone <span id="farscope-badge" class="badge badge-secondary">Silent</span></div>
+                            <div class="card-body">
+                                <canvas id="farscope" style="height:200px;width:200px;">Scope</canvas>
+                            </div>
+                        </div>
+                        <div class="col-sm card">
+                            <div class="card-header">Unrupt Buffer <span id="earscope-badge" class="badge badge-secondary">Silent</span>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="earscope" style="height:200px;width:200px;">Scope</canvas>
+                            </div>
+                        </div>
+                        <div class="col-sm card">
+                            <div class="card-header">This Microphone <span id="nearscope-badge" class="badge badge-secondary">Silent</span></div>
+                            <div class="card-body">
+                                <canvas id="nearscope" style="height:200px;width:200px;">Scope</canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <h4 class="card-header">Buffered audio</h4>
+    <div class="card-body">
+        <div class="progress">
+            <div id="unruptbuffer_spk" class="progress-bar progress-bar-striped bg-warning" role="progressbar"  aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
+            <div id="unruptbuffer_sil" class="progress-bar " role="progressbar"  aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
+        </div>
+        <span id="unruptbuffer_len" class="badge pull-right"></span>
+        <span id="version" class="badge badge-secondary">default</span>
+    </div>
+</div>
+
+
+
 <div class="card">
     <h4 class="card-header">Call</h4>
 
@@ -49,58 +132,6 @@
             <span id="mode" class="badge badge-primary">Direct</span>
         </div>
 
-    </div>
-</div>
-<div id="audioInfo" class="card">
-    <h4 class="card-header">Buffered audio</h4>
-    <div class="card-body">
-        <div class="progress">
-            <div id="unruptbuffer_spk" class="progress-bar progress-bar-striped bg-warning" role="progressbar"  aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
-            <div id="unruptbuffer_sil" class="progress-bar " role="progressbar"  aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
-        </div>
-        <span id="unruptbuffer_len" class="badge pull-right"></span>
-        <span id="version" class="badge badge-secondary">default</span>
-    </div>
-    <a class="btn btn-primary" data-toggle="collapse" href="#collapseExample" aria-expanded="false" aria-controls="collapseExample">
-        show/hide waveform graphs
-    </a>
-    <div class="collapse" id="collapseExample">
-        <div class="card">
-            <h4 class="card-header">Audio waveform</h4>
-            <div class="card-body">
-                <div class="container">
-                    <div class="row">
-                        <div class="col-sm card">
-                            <div class="card-header">This Microphone <span id="nearscope-badge"
-                                                                            class="badge badge-secondary">Silent</span></div>
-                            <div class="card-body">
-                                <canvas id="nearscope" style="height:200px;width:200px;">Scope</canvas>
-                            </div>
-                            <div id="thisUser">
-
-                            </div>
-                        </div>
-                        <div class="col-sm card">
-                            <div class="card-header">Unrupt Buffer <span id="earscope-badge" class="badge badge-secondary">Silent</span>
-                            </div>
-                            <div class="card-body">
-                                <canvas id="earscope" style="height:200px;width:200px;">Scope</canvas>
-                            </div>
-                        </div>
-                        <div class="col-sm card">
-                            <div class="card-header">Far Microphone <span id="farscope-badge" class="badge badge-secondary">Silent</span>
-                            </div>
-                            <div class="card-body">
-                                <canvas id="farscope" style="height:200px;width:200px;">Scope</canvas>
-                            </div>
-                            <div id="otherUser">
-
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
 </div>
 
@@ -238,18 +269,30 @@
         var audiostash = [];
 
         var pb = $("#pause");
+
+        console.log('PauseButton!!!', pb);
+
         var oldmute = false;
-        pb.click( _ => {
-            paused = !paused;
-            if (paused){
+
+        pb.off('click').on('click', (e) => {
+            e.stopImmediatePropagation();
+
+            console.log('clicked on pause!');
+
+            console.log('paused variable is', paused);
+
+            if (!paused){
+                paused = true;
                 pb.text("unpause");
                 oldmute = mute;
                 setMute(true);
             } else {
+                paused = false;
                 pb.text("pause");
                 setMute(oldmute);
             }
-        } );
+        });
+
         buffer.onaudioprocess = ape => {
             var inputBuffer = ape.inputBuffer;
             // The output buffer contains the samples that will be modified and played
@@ -327,12 +370,12 @@
 
     // mute management
     function setMute(m){
-        var pb = $("#mute");
+        var mb = $("#mute");
         mute = m;
         if (m){
-            pb.text("unmute");
+            mb.text("unmute");
         } else {
-            pb.text("mute");
+            mb.text("mute");
         }
         var audioTracks = localStream.getAudioTracks();
         if (audioTracks[0]) {
@@ -342,8 +385,8 @@
 
     // processing audio from the local microphone
     function myProc(node){
-        var pb = $("#mute");
-        pb.click( _ => {
+        var mb = $("#mute");
+        mb.click( () => {
             setMute(!mute);
         });
         var buffer = myac.createScriptProcessor(properties.procFramesize, 1, 1);
@@ -552,7 +595,12 @@
             });
         } else {
             chosenAction.show();
+
             $('#audioInfo').show();
+
+            if (videoEnabled) {
+                $('#videoRow').css('display', 'flex');
+            }
 
             socket = new WebSocket( properties.websocketURL + mid);
             socket.onmessage = messageDeal;
@@ -693,10 +741,13 @@
             var mode = (iamspeaking || paused) ? "paused" : playout;
             $('#mode').text(mode);
             if (remoteStream && videoEnabled) {
+                var pauseIcon = $('#pauseOther');
                 if (mode === "paused") {
                     otherUserMediaElement.pause();
+                    pauseIcon.show();
                 } else {
                     otherUserMediaElement.play();
+                    pauseIcon.hide();
                 }
             }
         }, 250);
