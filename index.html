@@ -48,9 +48,9 @@
 <h3 id="useragent"></h3>
 <!-- Optional JavaScript -->
 <!-- jQuery first, then Popper.js, then Bootstrap JS -->
-<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.3/umd/popper.min.js" integrity="sha384-vFJXuSJphROIrBnz7yo7oB41mKfc8JzQZiCq4NCceLEaO4IHwicKwpJf9c9IpFgh" crossorigin="anonymous"></script>
-<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/js/bootstrap.min.js" integrity="sha384-alpBpkh1PFOepccYVYDB4do5UnbKysX5WZXm3XxPqe5iKTfUKjNkCk9SaVuEZflJ" crossorigin="anonymous"></script>
+<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.3/umd/popper.min.js" crossorigin="anonymous"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/js/bootstrap.min.js" crossorigin="anonymous"></script>
 
 <div id="audioInfo" class="card">
     <div>
@@ -128,7 +128,7 @@
             <button id="action" type="button" class="btn btn-primary btn-lg"></button>
             <button id="pause" type="button" class="btn btn-primary btn-lg">pause</button>
             <button id="mute" type="button" class="btn btn-primary btn-lg">mute</button>
-
+            <button id="unruptToggle" type="button" class="btn btn-primary btn-lg">Pause-while-speaking on</button>
             <span id="mode" class="badge badge-primary">Direct</span>
         </div>
 
@@ -160,8 +160,8 @@
     var localStream;
     var remoteStream;
     var scopes= [];
-    var procs =[];
-    var backlog =0;
+    var procs = [];
+    var backlog = 0;
     var backlog_sil = 0;
     var backlog_spk = 0;
     var tick;
@@ -170,6 +170,8 @@
     var paused = false;
     var videoEnabled = false;
     var peerConnectionOfferAnswerCriteria =  {offerToReceiveAudio: true, offerToReceiveVideo: false };
+    var unruptEnabled = true;
+    var toggleUnrupt;
 
 
     // message stuff - used to create direct connection to peer over WEBRTC
@@ -182,6 +184,9 @@
             alert("message mixup");
         }
         switch (data.type) {
+            case "cheatUnruptToggle":
+                toggleUnrupt();
+                break;
             case "offer":
                 if (fid == null) {
                     fid = data.from;
@@ -237,14 +242,14 @@
         fid = cid;
         pc.createOffer(peerConnectionOfferAnswerCriteria)
             .then(desc => {
-                    console.log("offer created",);
-                    pc.setLocalDescription(desc).then( d => sendMessage(fid, mid, desc.type, desc.sdp));
-                })
+                console.log("offer created",);
+                pc.setLocalDescription(desc).then( d => sendMessage(fid, mid, desc.type, desc.sdp));
+            })
             .catch(e => console.log("offer not created due to ", e) );
     }
 
     function stopCall(){
-        window.location.href=window.location.href;
+        window.location.href = window.location.href;
     }
 
 
@@ -268,11 +273,38 @@
         var silentcount = 0;
         var audiostash = [];
 
+        var ub = $('#unruptToggle');
+
         var pb = $("#pause");
 
         console.log('PauseButton!!!', pb);
 
         var oldmute = false;
+
+        toggleUnrupt = () => {
+            if (unruptEnabled) {
+                unruptEnabled = false;
+                console.log('disconnecting the buffer');
+                node.disconnect(buffer);
+                document.getElementById('out').muted = false;
+                document.getElementById('out').play();
+                $('#pauseOther').hide();
+                ub.text('Pause-while-speaking off');
+            } else {
+                unruptEnabled = true;
+                console.log('connecting the buffer');
+                node.connect(buffer);
+                document.getElementById('out').muted = true;
+                ub.text('Pause-while-speaking on');
+            }
+        }
+
+
+        ub.off('click').on('click', (e) => {
+            e.stopImmediatePropagation();
+            toggleUnrupt();
+            sendMessage(fid, mid, "cheatUnruptToggle", true);
+        });
 
         pb.off('click').on('click', (e) => {
             e.stopImmediatePropagation();
@@ -293,7 +325,15 @@
             }
         });
 
-        buffer.onaudioprocess = ape => {
+        buffer.onaudioprocess = (ape) => {
+            console.log('ARE WE STILL PROCESSING AUDIO!?!');
+
+            if (!unruptEnabled) {
+                console.log('unrupt isnt enabled so clearing the backlog numbers');
+                backlog_sil = backlog_spk = 0;
+                return;
+            }
+
             var inputBuffer = ape.inputBuffer;
             // The output buffer contains the samples that will be modified and played
             var outputBuffer = ape.outputBuffer;
@@ -438,7 +478,7 @@
         remoteStream = stream;
         var mediaElement = document.getElementById('out');
         mediaElement.srcObject = stream;
-        mediaElement.muted = true;
+        //mediaElement.muted = true;
 
         mediaElement.onloadedmetadata = function(e) {
             mediaElement.play();
@@ -740,7 +780,7 @@
             var playout = backlog > 1 ? "playing" : "direct";
             var mode = (iamspeaking || paused) ? "paused" : playout;
             $('#mode').text(mode);
-            if (remoteStream && videoEnabled) {
+            if (remoteStream && videoEnabled && unruptEnabled) {
                 var pauseIcon = $('#pauseOther');
                 if (mode === "paused") {
                     otherUserMediaElement.pause();
