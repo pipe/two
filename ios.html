@@ -154,6 +154,8 @@
     var fid;
     var myac;
     var yourac;
+    var yourBuffer;
+    var myBuffer;
     var initiator;
     var lcandyStash = [];
     var rcandyStash = [];
@@ -172,6 +174,7 @@
     var peerConnectionOfferAnswerCriteria =  {offerToReceiveAudio: true, offerToReceiveVideo: false };
     var unruptEnabled = true;
     var toggleUnrupt;
+    var AudioContext = window.AudioContext || window.webkitAudioContext;
 
 
     // message stuff - used to create direct connection to peer over WEBRTC
@@ -268,7 +271,7 @@
 
     // processing incoming audio
     function yourProc(node){
-        var buffer = yourac.createScriptProcessor(properties.procFramesize, 1, 1);
+        var buffer = yourBuffer;
         console.log("made unrupt buffer of size ", buffer.bufferSize, buffer);
         var silentcount = 0;
         var audiostash = [];
@@ -429,7 +432,7 @@
         mb.click( () => {
             setMute(!mute);
         });
-        var buffer = myac.createScriptProcessor(properties.procFramesize, 1, 1);
+        var buffer = myBuffer;
         console.log("made unrupt buffer of size ", buffer.bufferSize);
         var silentcount = 0;
         buffer.onaudioprocess = ape => {
@@ -552,9 +555,15 @@
 
     // plumb the local audio together.
     function setupAudio() {
-        var AudioContext = window.AudioContext || window.webkitAudioContext;
+
         myac = new AudioContext();
         yourac = new AudioContext();
+
+        yourBuffer = yourac.createScriptProcessor(properties.procFramesize, 1, 1);
+        myBuffer = myac.createScriptProcessor(properties.procFramesize, 1, 1);
+
+
+
 
         navigator.mediaDevices.getUserMedia({audio: true, video: videoEnabled})
             .then((stream) => {
@@ -628,10 +637,10 @@
         if (cid == null){
             chooseAction.show();
             chooseActionAudio.click( _ => {
-                document.location = "index.html?" + "unruptId=" + mid;
+                document.location = "ios.html?" + "unruptId=" + mid;
             });
             chooseActionVideo.click( _ => {
-                document.location = "index.html?" + "unruptId=" + mid + "&video=1";
+                document.location = "ios.html?" + "unruptId=" + mid + "&video=1";
             });
         } else {
             chosenAction.show();
@@ -645,16 +654,21 @@
             socket = new WebSocket( properties.websocketURL + mid);
             socket.onmessage = messageDeal;
             socket.onopen = (_) => {
-                console.log("connected as", mid);
-                setupRTC();
-                setupAudio();
-                initiator = (mid === cid);
-                if  (initiator) {
-                    act.text("please share this page as a link");
-                } else {
-                    act.text("accept call");
-                    act.click( () => startCall(cid));
-                }
+
+                act.text("to continue, press here");
+                act.on('click', () => {
+                    act.off('click');
+                    console.log("connected as", mid);
+                    setupRTC();
+                    setupAudio();
+                    initiator = (mid === cid);
+                    if  (initiator) {
+                        act.text("please share this page as a link");
+                    } else {
+                        act.text("accept call");
+                        act.click( () => startCall(cid));
+                    }
+                })
             };
             socket.onerror = (e) => {
                 console.log("can't open websocket", e);
