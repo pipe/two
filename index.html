@@ -58,7 +58,7 @@
             <h4 class="card-header">Media</h4>
             <div class="card-body">
                 <div class="container">
-                    <div class="row" id="videoRow">
+                    <div class="row" id="videoRow1">
                         <div class="col-sm card">
                             <div class="card-header">Far Camera</div>
                             <div class="card-body">
@@ -69,7 +69,25 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-sm card"></div>
+                    </div>
+
+                    <!-- progress bar -->
+                    <div class="row">
+                        <div class="card-body">
+                            <div class="progress">
+                                <div id="unruptbuffer_spk" class="progress-bar progress-bar-striped bg-warning" role="progressbar"  aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
+                                <div id="unruptbuffer_sil" class="progress-bar " role="progressbar"  aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                            <span id="unruptbuffer_len" class="badge pull-right"></span>
+                            <span id="version" class="badge badge-secondary">default</span>
+                        </div>
+                    </div>
+
+                    <!-- commented out rather than deleted for now -->
+                    <!-- <div class="col-sm card"></div> -->
+
+                    <!-- This Camera window -->
+                    <div class="row" id="videoRow2">
                         <div class="col-sm card">
                             <div class="card-header">This Camera</div>
                             <div class="card-body">
@@ -77,7 +95,9 @@
                             </div>
                         </div>
                     </div>
-                    <div class="row">
+
+                    <!-- This should only be used for audio version -->
+                    <!-- <div class="row">
                         <div class="col-sm card">
                             <div class="card-header">Far Microphone <span id="farscope-badge" class="badge badge-secondary">Silent</span></div>
                             <div class="card-body">
@@ -97,12 +117,14 @@
                                 <canvas id="nearscope" style="height:200px;width:200px;">Scope</canvas>
                             </div>
                         </div>
-                    </div>
+                    </div> -->
                 </div>
             </div>
         </div>
     </div>
-    <h4 class="card-header">Buffered audio</h4>
+
+    <!-- commented out rather than deleted for now -->
+    <!-- <h4 class="card-header">Buffered audio</h4>
     <div class="card-body">
         <div class="progress">
             <div id="unruptbuffer_spk" class="progress-bar progress-bar-striped bg-warning" role="progressbar"  aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
@@ -110,7 +132,7 @@
         </div>
         <span id="unruptbuffer_len" class="badge pull-right"></span>
         <span id="version" class="badge badge-secondary">default</span>
-    </div>
+    </div> -->
 </div>
 
 
@@ -639,7 +661,10 @@
             $('#audioInfo').show();
 
             if (videoEnabled) {
-                $('#videoRow').css('display', 'flex');
+                $('#videoRow1').css('display', 'flex');
+            }
+            if (videoEnabled) {
+                $('#videoRow2').css('display', 'flex');
             }
 
             socket = new WebSocket( properties.websocketURL + mid);
