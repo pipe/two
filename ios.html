@@ -637,10 +637,10 @@
         if (cid == null){
             chooseAction.show();
             chooseActionAudio.click( _ => {
-                document.location = "ios.html?" + "unruptId=" + mid;
+                document.location = location.pathname + "?" + "unruptId=" + mid;
             });
             chooseActionVideo.click( _ => {
-                document.location = "ios.html?" + "unruptId=" + mid + "&video=1";
+                document.location = location.pathname + "?" + "unruptId=" + mid + "&video=1";
             });
         } else {
             chosenAction.show();

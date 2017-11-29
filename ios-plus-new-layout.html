@@ -59,7 +59,7 @@
             <div class="card-body">
                 <div class="container">
                     <div class="row" id="videoRow">
-                        <div class="col-sm card">
+                        <div class="col-sm-4 card">
                             <div class="card-header">Far Camera</div>
                             <div class="card-body">
                                 <div id="otherUser">
@@ -69,8 +69,8 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-sm card"></div>
-                        <div class="col-sm card">
+                        <div class="col-sm-4 card"></div>
+                        <div class="col-sm-4 card">
                             <div class="card-header">This Camera</div>
                             <div class="card-body">
                                 <div id="thisUser"></div>
@@ -78,20 +78,20 @@
                         </div>
                     </div>
                     <div class="row">
-                        <div class="col-sm card">
+                        <div class="col-sm-4 card">
                             <div class="card-header">Far Microphone <span id="farscope-badge" class="badge badge-secondary">Silent</span></div>
                             <div class="card-body">
                                 <canvas id="farscope" style="height:200px;width:200px;">Scope</canvas>
                             </div>
                         </div>
-                        <div class="col-sm card">
+                        <div class="col-sm-4 card">
                             <div class="card-header">Unrupt Buffer <span id="earscope-badge" class="badge badge-secondary">Silent</span>
                             </div>
                             <div class="card-body">
                                 <canvas id="earscope" style="height:200px;width:200px;">Scope</canvas>
                             </div>
                         </div>
-                        <div class="col-sm card">
+                        <div class="col-sm-4 card">
                             <div class="card-header">This Microphone <span id="nearscope-badge" class="badge badge-secondary">Silent</span></div>
                             <div class="card-body">
                                 <canvas id="nearscope" style="height:200px;width:200px;">Scope</canvas>
@@ -123,9 +123,6 @@
             <h5>Make Shareable Page</h5>
             <button id="chooseActionAudio" type="button" class="btn btn-primary btn-lg">Audio</button>
             <button id="chooseActionVideo" type="button" class="btn btn-primary btn-lg">Audio &amp; Video</button>
-
-            <a href="/ios.html">iOS</a>
-            <a href="/ios-plus-new-layout.html">iOS &amp; New Layout</a>
         </div>
         <div id="chosenAction">
             <button id="action" type="button" class="btn btn-primary btn-lg"></button>
@@ -157,6 +154,8 @@
     var fid;
     var myac;
     var yourac;
+    var yourBuffer;
+    var myBuffer;
     var initiator;
     var lcandyStash = [];
     var rcandyStash = [];
@@ -175,6 +174,7 @@
     var peerConnectionOfferAnswerCriteria =  {offerToReceiveAudio: true, offerToReceiveVideo: false };
     var unruptEnabled = true;
     var toggleUnrupt;
+    var AudioContext = window.AudioContext || window.webkitAudioContext;
 
 
     // message stuff - used to create direct connection to peer over WEBRTC
@@ -271,7 +271,7 @@
 
     // processing incoming audio
     function yourProc(node){
-        var buffer = yourac.createScriptProcessor(properties.procFramesize, 1, 1);
+        var buffer = yourBuffer;
         console.log("made unrupt buffer of size ", buffer.bufferSize, buffer);
         var silentcount = 0;
         var audiostash = [];
@@ -432,7 +432,7 @@
         mb.click( () => {
             setMute(!mute);
         });
-        var buffer = myac.createScriptProcessor(properties.procFramesize, 1, 1);
+        var buffer = myBuffer;
         console.log("made unrupt buffer of size ", buffer.bufferSize);
         var silentcount = 0;
         buffer.onaudioprocess = ape => {
@@ -555,9 +555,15 @@
 
     // plumb the local audio together.
     function setupAudio() {
-        var AudioContext = window.AudioContext || window.webkitAudioContext;
+
         myac = new AudioContext();
         yourac = new AudioContext();
+
+        yourBuffer = yourac.createScriptProcessor(properties.procFramesize, 1, 1);
+        myBuffer = myac.createScriptProcessor(properties.procFramesize, 1, 1);
+
+
+
 
         navigator.mediaDevices.getUserMedia({audio: true, video: videoEnabled})
             .then((stream) => {
@@ -634,7 +640,7 @@
                 document.location = location.pathname + "?" + "unruptId=" + mid;
             });
             chooseActionVideo.click( _ => {
-                document.location = location.pathname + "?" + "unruptId=" + mid + "&video=1";
+                document.location =  location.pathname + "?" + "unruptId=" + mid + "&video=1";
             });
         } else {
             chosenAction.show();
@@ -648,16 +654,21 @@
             socket = new WebSocket( properties.websocketURL + mid);
             socket.onmessage = messageDeal;
             socket.onopen = (_) => {
-                console.log("connected as", mid);
-                setupRTC();
-                setupAudio();
-                initiator = (mid === cid);
-                if  (initiator) {
-                    act.text("please share this page as a link");
-                } else {
-                    act.text("accept call");
-                    act.click( () => startCall(cid));
-                }
+
+                act.text("to continue, press here");
+                act.on('click', () => {
+                    act.off('click');
+                    console.log("connected as", mid);
+                    setupRTC();
+                    setupAudio();
+                    initiator = (mid === cid);
+                    if  (initiator) {
+                        act.text("please share this page as a link");
+                    } else {
+                        act.text("accept call");
+                        act.click( () => startCall(cid));
+                    }
+                })
             };
             socket.onerror = (e) => {
                 console.log("can't open websocket", e);
@@ -686,6 +697,7 @@
             analyser.getByteTimeDomainData(dataArray);
 
             canvasCtx.fillStyle = 'rgb(200, 200, 200)';
+            //canvasCtx.fillStyle = 'rgb(0,0,0,0)';
             canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
 
             canvasCtx.lineWidth = 2;
