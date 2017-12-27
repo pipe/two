@@ -19,13 +19,12 @@
         }
 
         video {
-            width: 320px;
+            width: 100%;
         }
 
         #otherUser, #thisUser {
             position: relative;
-            width: 320px;
-            height: 240px;
+            width: 100%;
         }
 
         .playpause {
@@ -59,7 +58,7 @@
             <div class="card-body">
                 <div class="container">
                     <div class="row" id="videoRow">
-                        <div class="col-sm card">
+                        <div class="col-sm-4 card">
                             <div class="card-header">Far Camera</div>
                             <div class="card-body">
                                 <div id="otherUser">
@@ -69,8 +68,8 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-sm card"></div>
-                        <div class="col-sm card">
+                        <div class="col-sm-4 card"></div>
+                        <div class="col-sm-4 card">
                             <div class="card-header">This Camera</div>
                             <div class="card-body">
                                 <div id="thisUser"></div>
@@ -78,20 +77,20 @@
                         </div>
                     </div>
                     <div class="row">
-                        <div class="col-sm card">
+                        <div class="col-sm-4 card">
                             <div class="card-header">Far Microphone <span id="farscope-badge" class="badge badge-secondary">Silent</span></div>
                             <div class="card-body">
                                 <canvas id="farscope" style="height:200px;width:200px;">Scope</canvas>
                             </div>
                         </div>
-                        <div class="col-sm card">
+                        <div class="col-sm-4 card">
                             <div class="card-header">Unrupt Buffer <span id="earscope-badge" class="badge badge-secondary">Silent</span>
                             </div>
                             <div class="card-body">
                                 <canvas id="earscope" style="height:200px;width:200px;">Scope</canvas>
                             </div>
                         </div>
-                        <div class="col-sm card">
+                        <div class="col-sm-4 card">
                             <div class="card-header">This Microphone <span id="nearscope-badge" class="badge badge-secondary">Silent</span></div>
                             <div class="card-body">
                                 <canvas id="nearscope" style="height:200px;width:200px;">Scope</canvas>
@@ -640,7 +639,7 @@
                 document.location = location.pathname + "?" + "unruptId=" + mid;
             });
             chooseActionVideo.click( _ => {
-                document.location = location.pathname + "?" + "unruptId=" + mid + "&video=1";
+                document.location =  location.pathname + "?" + "unruptId=" + mid + "&video=1";
             });
         } else {
             chosenAction.show();
@@ -697,6 +696,7 @@
             analyser.getByteTimeDomainData(dataArray);
 
             canvasCtx.fillStyle = 'rgb(200, 200, 200)';
+            //canvasCtx.fillStyle = 'rgb(0,0,0,0)';
             canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
 
             canvasCtx.lineWidth = 2;
