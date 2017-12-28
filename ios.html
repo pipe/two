@@ -595,29 +595,15 @@ websocketURL: "wss://pi.pe/websocket/?finger=" // where to find the redezvous se
                 var node = myac.createMediaStreamSource(stream);
                 var detect = myProc(node);
                 var manl = doScopeNode(myac, detect, "nearscope");
-                var dest = myac.createMediaStreamDestination();
-                manl.connect(dest);
-                var lstream = dest.stream;
+//                var dest = myac.createMediaStreamDestination();
+//                manl.connect(dest);
+//                var lstream = dest.stream;
                 if (pc.addTrack) {
                     stream.getTracks().forEach(track => {
-                        if (track.kind === 'video') {
                             pc.addTrack(track, stream);
                             console.log("added local track ", track.id, track.kind);
-
-                        }
-                    });
-                    lstream.getTracks().forEach(track => {
-                        if (track.kind === 'audio') {
-                            pc.addTrack(track, lstream);
-                            console.log("added webaudio track ", track.id, track.kind);
-                        }
                     });
                 } else {
-                    stream.getTracks().forEach(track => {
-                        if (track.kind === 'video') {
-                            lstream.addTrack(track);
-                        }
-                    });
                     pc.addStream(stream);
                     console.log("added local stream");
                 }
