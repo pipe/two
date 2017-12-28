@@ -14,16 +14,22 @@
             display:none;
         }
 
-        #in {
+        #out {
             transform: rotateY(180deg);
-        }
-
-        video {
             width: 480px;
             height: 640px;
         }
 
-        #otherUser, #thisUser {
+        #in {
+            position: absolute;
+            left:0px;
+            top:0px;
+            width: 48px;
+            height: 64px;
+        }
+
+
+        #otherUser {
             position: relative;
             width: 480px;
             height: 640px;
@@ -77,13 +83,6 @@
                             </div>
                         </div>
                     </div>
-                    <div class="row videorow" id="v2">
-                        <div class="col-sm card">
-                            <div class="card-body">
-                                <div id="thisUser"></div>
-                            </div>
-                        </div>
-                    </div>
                     <!--
                     <div class="row">
                         <div class="col-sm card">
@@ -116,8 +115,6 @@
 
 
 <div class="card">
-    <h4 class="card-header">Call</h4>
-
     <div class="card-body">
         <div id="chooseAction">
             <h5>Make Shareable Page</h5>
@@ -797,7 +794,7 @@ websocketURL: "wss://pi.pe/websocket/?finger=" // where to find the redezvous se
             var thisUserMediaElement = document.createElement('video');
             thisUserMediaElement.id = 'in';
             thisUserMediaElement.muted = true;
-            document.getElementById('thisUser').appendChild(thisUserMediaElement);
+            document.getElementById('otherUser').appendChild(thisUserMediaElement);
 
 
         } else {
