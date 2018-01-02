@@ -12,8 +12,8 @@
     <style>
         @media (min-height: 199.99px) and (min-width: 149.99px) {
             .video {
-                width: 120px;
-                height: 160px;
+                width: 240px;
+                height: 320px;
                 background: greenyellow;
             }
         }
@@ -98,7 +98,7 @@
 <script src="https://pi.pe/iot/js/qrcode.js"></script>
 
 <a href="ios.html"><h1 id="title" class="text-center">Verbol Speak</h1></a>
-    <div class="video" id="otherUser">
+    <div class="video" id="otherUser" onclick="doPlay();">
         <div id="pauseOther" class="playpause">
             <object data="pause.svg"></object>
         </div>
@@ -124,9 +124,6 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Share this url</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
             </div>
             <div class="modal-body" id="shareQR">
                 <p>Share this URL to request a call</p>
@@ -142,9 +139,6 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Accept a call</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
             </div>
             <div class="modal-body">
                 <p>Click 'accept' to start the call.</p>
@@ -529,7 +523,7 @@ websocketURL: "wss://pi.pe/websocket/?finger=" // where to find the redezvous se
             console.log('Video stream');
 
             mediaElement.onloadedmetadata = function (e) {
-                mediaElement.play();
+                //mediaElement.play();
                 mediaElement.muted = true;
             };
         }
@@ -595,7 +589,7 @@ websocketURL: "wss://pi.pe/websocket/?finger=" // where to find the redezvous se
                     sendMessage(fid, mid, "candidate", can.candidate);
                 }
                 var act = $("#action");
-                act.text("hangup call");
+                act.text("hangup");
                 act.click( _ => stopCall() );
             }
         };
@@ -644,9 +638,10 @@ function setupAudio() {
                     ourMediaElement.srcObject = stream;
 
                     ourMediaElement.onloadedmetadata = function (e) {
-                        ourMediaElement.play();
+                        //ourMediaElement.play();
                     };
                     ourMediaElement.onclick = function (e) {
+                        console.log("onclick for in video");
                         ourMediaElement.play();
                         var theirMediaElement = document.getElementById('out');
                         theirMediaElement.play();
@@ -661,6 +656,15 @@ function setupAudio() {
     });
     return promise;
 
+}
+
+function doPlay() {
+    var ourMediaElement = document.getElementById('in');
+
+    console.log("onclick for in video");
+    ourMediaElement.play();
+    var theirMediaElement = document.getElementById('out');
+    theirMediaElement.play();
 }
 
 
@@ -825,12 +829,15 @@ function accepted() {
             otherUserMediaElement.id = 'out';
             otherUserMediaElement.muted = true;
             otherUserMediaElement.className ="video";
+            otherUserMediaElement.setAttribute("playsinline", "true");
 
             document.getElementById('otherUser').appendChild(otherUserMediaElement);
 
             var thisUserMediaElement = document.createElement('video');
             thisUserMediaElement.id = 'in';
             thisUserMediaElement.muted = true;
+            thisUserMediaElement.setAttribute("playsinline", "true");
+
             document.getElementById('otherUser').appendChild(thisUserMediaElement);
 
 
@@ -857,13 +864,13 @@ function accepted() {
             $('#mode').text(mode);
             if (remoteStream && videoEnabled && unruptEnabled) {
                 var pauseIcon = $('#pauseOther');
-                if (mode === "paused") {
+                /*if (mode === "paused") {
                     otherUserMediaElement.pause();
                     pauseIcon.show();
                 } else {
                     otherUserMediaElement.play();
                     pauseIcon.hide();
-                }
+                }*/
             }
         }, 250);
     });
