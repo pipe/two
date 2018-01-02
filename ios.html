@@ -95,6 +95,8 @@
 <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.3/umd/popper.min.js" crossorigin="anonymous"></script>
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/js/bootstrap.min.js" crossorigin="anonymous"></script>
+<script src="https://pi.pe/iot/js/qrcode.js"></script>
+
 <a href="ios.html"><h1 id="title" class="text-center">Verbol Speak</h1></a>
     <div class="video" id="otherUser">
         <div id="pauseOther" class="playpause">
@@ -116,6 +118,42 @@
             <button id="unruptToggle" type="button" class="btn btn-primary btn-lg">P-on</button>
             <span id="mode" class="badge badge-primary">Direct</span>
         </div>
+</div>
+<div id="share" class="modal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Share this url</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" id="shareQR">
+                <p>Share this URL to request a call</p>
+            </div>
+            <div class="modal-footer">
+                <button id="shareDone" type="button" class="btn btn-secondary" data-dismiss="modal" onclick="shared();">Done</button>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="accept" class="modal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Accept a call</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p>Click 'accept' to start the call.</p>
+            </div>
+            <div class="modal-footer">
+                <button id="callAccept" type="button" class="btn btn-secondary" data-dismiss="modal" onclick="accepted();">Accept</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!--script src="properties.js"></script-->
@@ -154,6 +192,7 @@ websocketURL: "wss://pi.pe/websocket/?finger=" // where to find the redezvous se
     var socket; // used to set up connection with our peer.
     var mid;
     var fid;
+    var cid;
     var myac;
     var yourac;
     var yourBuffer;
@@ -491,7 +530,7 @@ websocketURL: "wss://pi.pe/websocket/?finger=" // where to find the redezvous se
 
             mediaElement.onloadedmetadata = function (e) {
                 mediaElement.play();
-                //mediaElement.muted = true;
+                mediaElement.muted = true;
             };
         }
         if (kind.indexOf("audio")!= -1) {
@@ -503,6 +542,7 @@ websocketURL: "wss://pi.pe/websocket/?finger=" // where to find the redezvous se
             var buffproc = yourProc(scope);
             var scope2 = doScopeNode(yourac, buffproc, "earscope");
             scope2.connect(yourac.destination);
+            $("#chosenAction").show();
         }
     }
 
@@ -562,26 +602,27 @@ websocketURL: "wss://pi.pe/websocket/?finger=" // where to find the redezvous se
     }
 
     // plumb the local audio together.
-    function setupAudio() {
+function setupAudio() {
 
-        myac = new AudioContext();
-        yourac = new AudioContext();
+    myac = new AudioContext();
+    yourac = new AudioContext();
 
-        yourBuffer = yourac.createScriptProcessor(properties.procFramesize, 1, 1);
-        myBuffer = myac.createScriptProcessor(properties.procFramesize, 1, 1);
-        let supportedConstraints = navigator.mediaDevices.getSupportedConstraints();
-        console.log("Supported constraints");
-        for (let constraint in supportedConstraints) {
-            if (supportedConstraints.hasOwnProperty(constraint)) {
-                console.log("\t"+constraint +"="+supportedConstraints[constraint]);
-            }
+    yourBuffer = yourac.createScriptProcessor(properties.procFramesize, 1, 1);
+    myBuffer = myac.createScriptProcessor(properties.procFramesize, 1, 1);
+    let supportedConstraints = navigator.mediaDevices.getSupportedConstraints();
+    console.log("Supported constraints");
+    for (let constraint in supportedConstraints) {
+        if (supportedConstraints.hasOwnProperty(constraint)) {
+            console.log("\t" + constraint + "=" + supportedConstraints[constraint]);
         }
-        var gumConstraints = {audio: true, video: videoEnabled?{width:640 ,height:480}:false};
+    }
+    //var gumConstraints = {audio: true, video: videoEnabled ? {width: 640, height: 480} : false};
+    var gumConstraints = {audio: true, video: true};
+
+    var promise = new Promise(function (resolve, reject) {
 
         navigator.mediaDevices.getUserMedia(gumConstraints)
             .then((stream) => {
-
-
                 localStream = stream; // in case we need it
                 var node = myac.createMediaStreamSource(stream);
                 var detect = myProc(node);
@@ -591,8 +632,8 @@ websocketURL: "wss://pi.pe/websocket/?finger=" // where to find the redezvous se
 //                var lstream = dest.stream;
                 if (pc.addTrack) {
                     stream.getTracks().forEach(track => {
-                            pc.addTrack(track, stream);
-                            console.log("added local track ", track.id, track.kind);
+                        pc.addTrack(track, stream);
+                        console.log("added local track ", track.id, track.kind);
                     });
                 } else {
                     pc.addStream(stream);
@@ -605,26 +646,47 @@ websocketURL: "wss://pi.pe/websocket/?finger=" // where to find the redezvous se
                     ourMediaElement.onloadedmetadata = function (e) {
                         ourMediaElement.play();
                     };
+                    ourMediaElement.onclick = function (e) {
+                        ourMediaElement.play();
+                        var theirMediaElement = document.getElementById('out');
+                        theirMediaElement.play();
+                    };
                 }
+                resolve(videoEnabled);
             })
-            .catch((e) => console.log('getUserMedia() error:'+ e));
+            .catch((e) => {
+                console.log('getUserMedia() error:' + e);
+                reject(e);
+            });
+    });
+    return promise;
 
-    }
+}
 
-    // decide who we are initiator or recpient.
-    // notice that the actual call goes in the reverse direction
-    // the recipient of the invite actually creates the audiobearing peerconnection
-    // the initiator then accepts this audio - This allows the initiator the chance to
-    // change their mind, if their circumstances have changed since the invite was sent.
+
+function shared() {
+    setupRTC();
+    setupAudio().then(_ => {
+        console.log("ready for offer");
+    });
+}
+function accepted() {
+    setupRTC();
+    setupAudio().then(_ => {
+        console.log("ready for offer");
+        startCall(cid)
+    });
+}
+// decide who we are initiator or recpient.
+// notice that the actual call goes in the reverse direction
+// the recipient of the invite actually creates the audiobearing peerconnection
+// the initiator then accepts this audio - This allows the initiator the chance to
+// change their mind, if their circumstances have changed since the invite was sent.
 
     function setRole() {
-        var cid = $.getUrlVar("unruptId");
+        cid = $.getUrlVar("unruptId");
         mid = localStorage['unruptId'];
-        var chooseAction = $("#chooseAction");
-        var chosenAction = $("#chosenAction");
-        var chooseActionAudio = $("#chooseActionAudio");
-        var chooseActionVideo = $("#chooseActionVideo");
-        var act = $("#action");
+        //var act = $("#action");
         if (!mid) {
             var array = new Uint32Array(8);
             window.crypto.getRandomValues(array);
@@ -644,38 +706,26 @@ websocketURL: "wss://pi.pe/websocket/?finger=" // where to find the redezvous se
             localStorage['unruptId'] = mid;
         }
         if (cid == null){
-            chooseAction.show();
-            chosenAction.hide();
-
-            chooseActionAudio.click( _ => {
-                document.location = location.pathname + "?" + "unruptId=" + mid;
-            });
-            chooseActionVideo.click( _ => {
-                document.location = location.pathname + "?" + "unruptId=" + mid + "&video=1";
-            });
+            document.location = location.pathname + "?" + "unruptId=" + mid + "&video=1";
+            // this has the effect of getting our id into the browser bar -
+            // making it easy to share etc.
         } else {
-            chosenAction.show();
-            chooseAction.hide();
-
-
+            var qrcode = new QRCode(document.getElementById("shareQR"), {
+                width: 280,
+                height: 280,
+                correctLevel: QRCode.CorrectLevel.L
+            });
             socket = new WebSocket( properties.websocketURL + mid);
             socket.onmessage = messageDeal;
             socket.onopen = (_) => {
-
-                act.text("to continue, press here");
-                act.on('click', () => {
-                    act.off('click');
-                    console.log("connected as", mid);
-                    setupRTC();
-                    setupAudio();
-                    initiator = (mid === cid);
-                    if  (initiator) {
-                        act.text("please share this page as a link");
-                    } else {
-                        act.text("accept call");
-                        act.click( () => startCall(cid));
-                    }
-                })
+                var url = document.location.href;
+                console.log("href = "+url);
+                if (url) {
+                    qrcode.makeCode(url);
+                }
+                initiator = (mid === cid);
+                var smodal = initiator ? "#share":"#accept";
+                $(smodal).modal('show');
             };
             socket.onerror = (e) => {
                 console.log("can't open websocket", e);
@@ -790,7 +840,7 @@ websocketURL: "wss://pi.pe/websocket/?finger=" // where to find the redezvous se
             mediaElement.muted = true;
             document.body.appendChild(mediaElement);
         }
-
+        $("#chosenAction").hide();
         setRole();
 
         //$('#version').text(properties.versionname);
