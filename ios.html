@@ -8,6 +8,7 @@
 
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css" integrity="sha384-PsH8R72JQ3SOdhVi3uxftmaW6Vc51MKb0q5P2rRUpPvrszuE4W1povHYgTpBfshb" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
 
     <style>
         @media (min-height: 199.99px) and (min-width: 149.99px) {
@@ -110,13 +111,15 @@
             <div id="unruptbuffer_sil" class="progress-bar " role="progressbar" aria-valuenow="100"
                  aria-valuemin="0" aria-valuemax="100"></div>
         </div>
+    <div>
+        <span id="mode" class="badge badge-primary pull-left">Direct</span>
         <span id="unruptbuffer_len" class="badge pull-right"></span>
-        <div id="chosenAction">
-            <button id="action" type="button" class="btn btn-primary btn-lg"></button>
-            <button id="pause" type="button" class="btn btn-primary btn-lg">p</button>
-            <button id="mute" type="button" class="btn btn-primary btn-lg">m</button>
-            <button id="unruptToggle" type="button" class="btn btn-primary btn-lg">P-on</button>
-            <span id="mode" class="badge badge-primary">Direct</span>
+    </div>
+        <div id="chosenAction" class="row">
+            <button id="action" type="button" class="btn btn-primary btn-lg"><i class="fa fa-sign-out fa-2x" aria-hidden="true"></i></button>
+            <button id="pause" type="button" class="btn btn-primary btn-lg"><i id="pauseIcon" class="fa fa-play-circle fa-2x" aria-hidden="true"></i></button>
+            <button id="mute" type="button" class="btn btn-primary btn-lg"><i id="muteIcon" class="fa fa-microphone fa-2x" aria-hidden="true"></i></button>
+            <button id="unruptToggle" type="button" class="btn btn-primary btn-lg"><i id="pwsIcon" class="fa fa-exchange fa-2x" aria-hidden="true"></i></button>
         </div>
 </div>
 <div id="share" class="modal" tabindex="-1" role="dialog">
@@ -211,6 +214,7 @@ websocketURL: "wss://pi.pe/websocket/?finger=" // where to find the redezvous se
     var toggleUnrupt;
     var AudioContext = window.AudioContext || window.webkitAudioContext;
     var framecount =0;
+    var mode = "waiting";
 
     // message stuff - used to create direct connection to peer over WEBRTC
 
@@ -241,7 +245,7 @@ websocketURL: "wss://pi.pe/websocket/?finger=" // where to find the redezvous se
             case "answer":
                 pc.setRemoteDescription(data)
                     .then( _ => {
-                    $("#action").text("hangup");
+                    //$("#action").text("hangup");
                 })
                     .catch(e => console.log("set Remote answer error", e) );
                 break;
@@ -320,6 +324,7 @@ websocketURL: "wss://pi.pe/websocket/?finger=" // where to find the redezvous se
         var oldmute = false;
 
         toggleUnrupt = () => {
+            var ubi = $('#pwsIcon');
             if (unruptEnabled) {
                 unruptEnabled = false;
                 console.log('disconnecting the buffer');
@@ -327,13 +332,15 @@ websocketURL: "wss://pi.pe/websocket/?finger=" // where to find the redezvous se
                 document.getElementById('out').muted = false;
                 document.getElementById('out').play();
                 $('#pauseOther').hide();
-                ub.text('Pause-while-speaking off');
+                ubi.removeClass("fa-exchange");
+                ubi.addClass("fa-arrows-h");
             } else {
                 unruptEnabled = true;
                 console.log('connecting the buffer');
                 node.connect(buffer);
                 document.getElementById('out').muted = true;
-                ub.text('Pause-while-speaking on');
+                ubi.removeClass("fa-arrows-h");
+                ubi.addClass("fa-exchange");
             }
         }
 
@@ -346,19 +353,21 @@ websocketURL: "wss://pi.pe/websocket/?finger=" // where to find the redezvous se
 
         pb.off('click').on('click', (e) => {
             e.stopImmediatePropagation();
-
+            var pbi = $("#pauseIcon");
             console.log('clicked on pause!');
 
             console.log('paused variable is', paused);
 
             if (!paused){
                 paused = true;
-                pb.text("unpause");
+                pbi.removeClass("fa-play-circle");
+                pbi.addClass("fa-pause-circle");
                 oldmute = mute;
                 setMute(true);
             } else {
                 paused = false;
-                pb.text("pause");
+                pbi.removeClass("fa-pause-circle");
+                pbi.addClass("fa-play-circle");
                 setMute(oldmute);
             }
         });
@@ -447,12 +456,14 @@ websocketURL: "wss://pi.pe/websocket/?finger=" // where to find the redezvous se
 
     // mute management
     function setMute(m){
-        var mb = $("#mute");
+        var mi = $("#muteIcon");
         mute = m;
         if (m){
-            mb.text("unmute");
+            mi.removeClass("fa-microphone");
+            mi.addClass("fa-microphone-slash");
         } else {
-            mb.text("mute");
+            mi.removeClass("fa-microphone-slash");
+            mi.addClass("fa-microphone");
         }
         var audioTracks = localStream.getAudioTracks();
         if (audioTracks[0]) {
@@ -589,7 +600,7 @@ websocketURL: "wss://pi.pe/websocket/?finger=" // where to find the redezvous se
                     sendMessage(fid, mid, "candidate", can.candidate);
                 }
                 var act = $("#action");
-                act.text("hangup");
+                //act.text("hangup");
                 act.click( _ => stopCall() );
             }
         };
@@ -830,6 +841,8 @@ function accepted() {
             otherUserMediaElement.muted = true;
             otherUserMediaElement.className ="video";
             otherUserMediaElement.setAttribute("playsinline", "true");
+            otherUserMediaElement.setAttribute("autoplay", "true");
+
 
             document.getElementById('otherUser').appendChild(otherUserMediaElement);
 
@@ -837,6 +850,8 @@ function accepted() {
             thisUserMediaElement.id = 'in';
             thisUserMediaElement.muted = true;
             thisUserMediaElement.setAttribute("playsinline", "true");
+            thisUserMediaElement.setAttribute("autoplay", "true");
+
 
             document.getElementById('otherUser').appendChild(thisUserMediaElement);
 
@@ -860,17 +875,24 @@ function accepted() {
             $('#unruptbuffer_sil').css('width', sil + "%").attr('aria-valuenow', sil);
             $('#unruptbuffer_spk').css('width', spk + "%").attr('aria-valuenow', spk);
             var playout = backlog > 1 ? "playing" : "direct";
-            var mode = (iamspeaking || paused) ? "paused" : playout;
-            $('#mode').text(mode);
-            if (remoteStream && videoEnabled && unruptEnabled) {
-                var pauseIcon = $('#pauseOther');
-                /*if (mode === "paused") {
-                    otherUserMediaElement.pause();
-                    pauseIcon.show();
-                } else {
-                    otherUserMediaElement.play();
-                    pauseIcon.hide();
-                }*/
+            var newmode = (iamspeaking || paused) ? "paused" : playout;
+            if (newmode != mode) {
+                mode = newmode;
+                $('#mode').text(mode);
+                if (remoteStream && videoEnabled && unruptEnabled) {
+                    var pauseIcon = $('#pauseOther');
+                    var pause = false;
+                    if (mode === "paused") {
+                        //otherUserMediaElement.pause();
+                        pauseIcon.show();
+                        pause = true;
+                    } else {
+                        //otherUserMediaElement.play();
+                        pauseIcon.hide();
+                    }
+                    // ideally if this is pause-start, we'd snapshot the video and pull a still
+                    otherUserMediaElement.srcObject.getTracks().forEach(t => t.enabled = !pause);
+                }
             }
         }, 250);
     });
