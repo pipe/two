@@ -59,6 +59,8 @@
             right:0;
             bottom:0;
             margin:auto;
+            background-size:contain;
+            background-position: center;
         }
 
         #in {
@@ -318,10 +320,9 @@ function videoCapture() {
 
     var img = new Image();
     img.onload = function() {
-        context.drawImage(img, 0, 0);
+        context.drawImage(img, (videoWidth/2)-24, (videoHeight/2)-24);
     }
     img.src = "pause.svg";
-
 }
     // webaudio processing
 
