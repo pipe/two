@@ -53,6 +53,12 @@
 
         #out {
             transform: rotateY(180deg);
+            width:100%;
+            position:absolute;
+            left:0;
+            right:0;
+            bottom:0;
+            margin:auto;
         }
 
         #in {
@@ -77,7 +83,7 @@
 
         .playpause {
             display: none;
-            width:25%;
+            width:100%;
             position:absolute;
             left:0;
             right:0;
@@ -100,9 +106,9 @@
 
 <a href="ios.html"><h1 id="title" class="text-center">Verbol Speak</h1></a>
     <div class="video" id="otherUser" onclick="doPlay();">
-        <div id="pauseOther" class="playpause">
+        <canvas id="pauseOther" class="playpause">
             <object data="pause.svg"></object>
-        </div>
+        </canvas>
     </div>
 <div class="container">
         <div class="progress">
@@ -294,7 +300,29 @@ websocketURL: "wss://pi.pe/websocket/?finger=" // where to find the redezvous se
         window.location.href = window.location.href;
     }
 
+function videoCapture() {
+    var video = document.getElementById("out");
+    var videoWidth = video.videoWidth, videoHeight = video.videoHeight;
+    var canvas = document.getElementById('pauseOther');
+    canvas.width = videoWidth;
+    canvas.height = videoHeight;
+    var context = canvas.getContext('2d');
+    context.translate(canvas.width, 0);
 
+    // flip context horizontally
+    context.scale(-1, 1);
+
+    context.drawImage(
+        video, 0, 0, videoWidth, videoHeight
+    );
+
+    var img = new Image();
+    img.onload = function() {
+        context.drawImage(img, 0, 0);
+    }
+    img.src = "pause.svg";
+
+}
     // webaudio processing
 
     // display waveform for diagnostics
@@ -887,14 +915,17 @@ function accepted() {
                     var pause = false;
                     if (mode === "paused") {
                         //otherUserMediaElement.pause();
+                        videoCapture();
                         pauseIcon.show();
+                        $('#out').hide();
                         pause = true;
                     } else {
                         //otherUserMediaElement.play();
                         pauseIcon.hide();
+                        $('#out').show();
                     }
                     // ideally if this is pause-start, we'd snapshot the video and pull a still
-                    otherUserMediaElement.srcObject.getTracks().forEach(t => t.enabled = !pause);
+                    //otherUserMediaElement.srcObject.getTracks().forEach(t => t.enabled = !pause);
                 }
             }
         }, 250);
