@@ -683,6 +683,8 @@ function shared() {
     setupRTC();
     setupAudio().then(_ => {
         console.log("ready for offer");
+        doPlay();
+
     });
 }
 function accepted() {
@@ -690,6 +692,7 @@ function accepted() {
     setupAudio().then(_ => {
         console.log("ready for offer");
         startCall(cid)
+        doPlay();
     });
 }
 // decide who we are initiator or recpient.
@@ -841,7 +844,7 @@ function accepted() {
             otherUserMediaElement.muted = true;
             otherUserMediaElement.className ="video";
             otherUserMediaElement.setAttribute("playsinline", "true");
-            otherUserMediaElement.setAttribute("autoplay", "true");
+            //otherUserMediaElement.setAttribute("autoplay", "true");
 
 
             document.getElementById('otherUser').appendChild(otherUserMediaElement);
@@ -850,7 +853,7 @@ function accepted() {
             thisUserMediaElement.id = 'in';
             thisUserMediaElement.muted = true;
             thisUserMediaElement.setAttribute("playsinline", "true");
-            thisUserMediaElement.setAttribute("autoplay", "true");
+            //thisUserMediaElement.setAttribute("autoplay", "true");
 
 
             document.getElementById('otherUser').appendChild(thisUserMediaElement);
@@ -877,9 +880,9 @@ function accepted() {
             var playout = backlog > 1 ? "playing" : "direct";
             var newmode = (iamspeaking || paused) ? "paused" : playout;
             if (newmode != mode) {
-                mode = newmode;
-                $('#mode').text(mode);
                 if (remoteStream && videoEnabled && unruptEnabled) {
+                    mode = newmode;
+                    $('#mode').text(mode);
                     var pauseIcon = $('#pauseOther');
                     var pause = false;
                     if (mode === "paused") {
