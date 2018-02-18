@@ -23,15 +23,10 @@
 <script src="https://pi.pe/iot/js/qrcode.js"></script>
 
 <a href="index.html"><h1 id="title" class="text-center">Podcast recorder</h1></a>
-    <div class="video" id="otherUser">
-        <div id="pauseOther" class="playpause">
-            <object data="pause.svg"></object>
-            <audio id="them" style="display: none" autoplay/>
-        </div>
-    </div>
 <div class="container">
         <div id="chosenAction" class="row">
             <button id="mute" type="button" class="btn btn-primary btn-lg"><i id="muteIcon" class="fa fa-microphone fa-2x" aria-hidden="true"></i></button>
+            <button id="stopCall" type="button" class="btn btn-primary btn-lg"><i id="stopIcon" class="fa fa-stop fa-2x" aria-hidden="true"></i></button>
         </div>
 </div>
 <div id="share" class="modal" tabindex="-1" role="dialog">
@@ -64,6 +59,7 @@
         </div>
     </div>
 </div>
+<audio id="them" style="display: none" autoplay/>
 
 <!--script src="properties.js"></script-->
 <script>
@@ -93,6 +89,9 @@ websocketURL: "wss://pi.pe/websocket/?finger=" // where to find the redezvous se
     var lcandyStash = [];
     var rcandyStash = [];
     var localStream;
+    var dcomp;
+    var recorder;
+
 
     var mute = false;
     var peerConnectionOfferAnswerCriteria =  {offerToReceiveAudio: true, offerToReceiveVideo: false };
@@ -168,24 +167,29 @@ websocketURL: "wss://pi.pe/websocket/?finger=" // where to find the redezvous se
             })
             .catch(e => console.log("offer not created due to ", e) );
     }
-/* future hackery
-function saveData(blob) {
-    var a = document.createElement("a");
-    document.body.appendChild(a);
-    a.style = "display: none";
-    return function (data, fileName) {
+    function saveData(blob) {
+        var fileName = 'distributeFutu.re-'+new Date().toISOString() + '.wav';
+
+        console.log("Save data ?");
+        var a = document.createElement("a");
+        document.body.appendChild(a);
+        a.style = "display: none";
+        console.log("saving wav blob as " + fileName);
         url = window.URL.createObjectURL(blob);
         a.href = url;
         a.download = fileName;
         a.click();
         window.URL.revokeObjectURL(url);
-    };
-}
-*/
-    function stopCall(){
-        window.location.href = window.location.href
+    }
 
-        //saveData(data, fileName);
+    function stopCall(){
+        //window.location.href = window.location.href
+        localStream.getAudioTracks()[0].stop();
+        recorder && recorder.exportWAV(function (blob) {
+            console.log("created wav blob");
+            saveData(blob);
+            recorder.clear();
+        }, "audio/wav");
     }
 
 
@@ -216,19 +220,22 @@ function saveData(blob) {
         console.log("got new stream" + stream + " kind =" + kind);
         if (kind.indexOf("audio")!= -1) {
             document.getElementById("them").srcObject = stream;
-            /*var peer = myac.createMediaStreamSource(stream);
+            var peer = myac.createMediaStreamSource(stream);
             if (initiator) {
                 var panyou = myac.createStereoPanner();
                 panyou.pan.value = +0.3;
-                peer.connect(panyou);
-                panyou.connect(myac.destination);
-            } else {
-                peer.connect(myac.destination);
+                peer.connect(panyou)
+                panyou.connect(dcomp);
+                recorder = new Recorder(dcomp);
+                console.log('Recorder initialised');
+                // Start recording !
+                recorder && recorder.record();
+                console.log('Recording...');
+                //panyou.connect(myac.destination);
             }
             // audio together here.
             // depends on role
             console.log('Audio sample Rate is '+ myac.sampleRate);
-            */
             $("#chosenAction").show();
         }
     }
@@ -281,7 +288,7 @@ function saveData(blob) {
                     console.log("popping candidate off stash")
                     sendMessage(fid, mid, "candidate", can.candidate);
                 }
-                var act = $("#action");
+                var act = $("#stopCall");
                 act.click( _ => stopCall() );
             }
         };
@@ -291,19 +298,21 @@ function saveData(blob) {
 function setupAudio() {
 
     myac = new AudioContext();
+    dcomp = myac.createDynamicsCompressor();
+
     var gumConstraints = {audio: true, video: false};
 
     var promise = new Promise(function (resolve, reject) {
         navigator.mediaDevices.getUserMedia(gumConstraints)
             .then((stream) => {
                 localStream = stream;
-                /*if (initiator) {
+                if (initiator) {
                     let node = myac.createMediaStreamSource(stream);
                     panme = myac.createStereoPanner();
                     panme.pan.value = -0.3;
                     node.connect(panme);
-                    panme.connect(myac.destination);
-                }*/
+                    panme.connect(dcomp);
+                }
                 if (pc.addTrack) {
                     stream.getTracks().forEach(track => {
                         pc.addTrack(track, stream);
@@ -427,5 +436,6 @@ function accepted() {
         setRole();
     });
 </script>
+<script src="recorder.js"></script>
 </body>
 </html>
