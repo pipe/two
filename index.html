@@ -23,9 +23,10 @@
 <script src="https://pi.pe/iot/js/qrcode.js"></script>
 
 <a href="index.html"><h1 id="title" class="text-center">Podcast recorder</h1></a>
-    <div class="video" id="otherUser" onclick="doPlay();">
+    <div class="video" id="otherUser">
         <div id="pauseOther" class="playpause">
             <object data="pause.svg"></object>
+            <audio id="them" style="display: none" autoplay/>
         </div>
     </div>
 <div class="container">
@@ -107,9 +108,6 @@ websocketURL: "wss://pi.pe/websocket/?finger=" // where to find the redezvous se
             alert("message mixup");
         }
         switch (data.type) {
-            case "cheatUnruptToggle":
-                toggleUnrupt();
-                break;
             case "offer":
                 if (fid == null) {
                     fid = data.from;
@@ -170,7 +168,7 @@ websocketURL: "wss://pi.pe/websocket/?finger=" // where to find the redezvous se
             })
             .catch(e => console.log("offer not created due to ", e) );
     }
-
+/* future hackery
 function saveData(blob) {
     var a = document.createElement("a");
     document.body.appendChild(a);
@@ -183,15 +181,11 @@ function saveData(blob) {
         window.URL.revokeObjectURL(url);
     };
 }
-
+*/
     function stopCall(){
-        // do better... window.location.href = window.location.href;
+        window.location.href = window.location.href
 
-
-        var data = { x: 42, s: "hello, world", d: new Date() },
-            fileName = "my-download.json";
-
-        saveData(data, fileName);
+        //saveData(data, fileName);
     }
 
 
@@ -221,7 +215,8 @@ function saveData(blob) {
 
         console.log("got new stream" + stream + " kind =" + kind);
         if (kind.indexOf("audio")!= -1) {
-            var peer = myac.createMediaStreamSource(stream);
+            document.getElementById("them").srcObject = stream;
+            /*var peer = myac.createMediaStreamSource(stream);
             if (initiator) {
                 var panyou = myac.createStereoPanner();
                 panyou.pan.value = +0.3;
@@ -233,7 +228,7 @@ function saveData(blob) {
             // audio together here.
             // depends on role
             console.log('Audio sample Rate is '+ myac.sampleRate);
-
+            */
             $("#chosenAction").show();
         }
     }
@@ -287,7 +282,6 @@ function saveData(blob) {
                     sendMessage(fid, mid, "candidate", can.candidate);
                 }
                 var act = $("#action");
-                //act.text("hangup");
                 act.click( _ => stopCall() );
             }
         };
@@ -302,13 +296,14 @@ function setupAudio() {
     var promise = new Promise(function (resolve, reject) {
         navigator.mediaDevices.getUserMedia(gumConstraints)
             .then((stream) => {
-                if (initiator) {
+                localStream = stream;
+                /*if (initiator) {
                     let node = myac.createMediaStreamSource(stream);
                     panme = myac.createStereoPanner();
                     panme.pan.value = -0.3;
                     node.connect(panme);
                     panme.connect(myac.destination);
-                }
+                }*/
                 if (pc.addTrack) {
                     stream.getTracks().forEach(track => {
                         pc.addTrack(track, stream);
@@ -329,19 +324,12 @@ function setupAudio() {
 
 }
 
-function doPlay() {
-    var ourMediaElement = document.getElementById('in');
-    ourMediaElement.play();
-    var theirMediaElement = document.getElementById('out');
-    theirMediaElement.play();
-}
 
 
 function shared() {
     setupRTC();
     setupAudio().then(_ => {
         console.log("ready for offer");
-        doPlay();
 
     });
 }
@@ -350,7 +338,6 @@ function accepted() {
     setupAudio().then(_ => {
         console.log("ready for offer");
         startCall(cid)
-        doPlay();
     });
 }
 // decide who we are initiator or recpient.
@@ -435,14 +422,6 @@ function accepted() {
     });
 
     $( document ).ready( _ => {
-        var mediaElement = document.createElement('audio');
-        mediaElement.id = 'out';
-        mediaElement.muted = true;
-        document.body.appendChild(mediaElement);
-        mediaElement = document.createElement('audio');
-        mediaElement.id = 'in';
-        mediaElement.muted = true;
-        document.body.appendChild(mediaElement);
         $("#chosenAction").hide();
         $("#mute").click(_ => setMute(!mute));
         setRole();
