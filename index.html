@@ -197,9 +197,14 @@ websocketURL: "wss://pi.pe/websocket/?finger=" // where to find the redezvous se
 
     function stopCall(){
         localStream.getAudioTracks()[0].stop();
-        recorder.stop();
+        if (initiator) {
+            recorder.stop();
+        } else {
+            clearInterval(recorder);
+        }
 // save file here....
         $("#status").text("Call ended.");
+
 
     }
 
@@ -259,8 +264,11 @@ websocketURL: "wss://pi.pe/websocket/?finger=" // where to find the redezvous se
                     saveData(blob)
                 };
                 recorder.start(10000);
-                startRecTime = Date.now();
+            } else {
+                recorder = window.setInterval(repaintDuration,10000);
             }
+            startRecTime = Date.now();
+
             // audio together here.
             // depends on role
             console.log('Audio sample Rate is '+ myac.sampleRate);
