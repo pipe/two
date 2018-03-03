@@ -30,7 +30,8 @@ DON'T CLOSE THE BROWSER TAB - the recording isn't saved untill you end the call,
 you just nuke the tab!
 
 At the end of the call click the square button, then WAIT a few seconds until you see that the audio has been sucessfully saved. 
-The saved audio is a 44k1 lossless stereo WAV file. 
+The saved audio is an ogg/opus file - this is smaller than the original version which used WAV - but since the conversation was
+conducted in opus it should not be lower quality. Audacity can convert back to WAV if needed.
 
 Guest: When you get the invite - open it in chrome on Android or safari on IoS11. Click 'Accept' and agree to the dropdown to 
 asking to allow the page to access your microphone (first time only), place the phone somewhere comfortable, adjust the speaker volume and just talk. (The mic symbol mutes/unmutes your microphone, the square ends the call). 
