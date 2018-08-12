@@ -33,6 +33,9 @@
             <button id="stopCall" type="button" class="btn btn-primary btn-lg"><i id="stopIcon" class="fa fa-stop fa-2x" aria-hidden="true"></i></button>
         </div>
     <div>Duration <span class="badge badge-error" id="duration"></span></div>
+    <div class="alert alert-danger" id="packetLoss">
+        <strong id="countZero"></strong>% packet loss detected.
+    </div>
 </div>
 
 <div id="share" class="modal" tabindex="-1" role="dialog">
@@ -99,6 +102,8 @@ websocketURL: "wss://pi.pe/websocket/?finger=" // where to find the redezvous se
     var chunks = [];
     var saved = false;
     var startRecTime = 0;
+    var lastLoss = 0;
+    var lastRecv =0;
 
 
     var mute = false;
@@ -106,6 +111,18 @@ websocketURL: "wss://pi.pe/websocket/?finger=" // where to find the redezvous se
     var AudioContext = window.AudioContext || window.webkitAudioContext;
 
     // message stuff - used to create direct connection to peer over WEBRTC
+
+    function tweakSDP(sdp){
+        var lines = sdp.split("\r\n");
+        for (var i=0;i<lines.length;i++){
+            line = lines[i];
+            if (line.startsWith("a=fmtp:111")){
+                lines[i]= "a=fmtp:111 minptime=10; ptime=60; useinbandfec=1";
+            }
+        }
+        return (lines.join("\r\n"));
+    }
+
 
     function messageDeal(event){
         //console.log("message is ", event.data);
@@ -120,11 +137,12 @@ websocketURL: "wss://pi.pe/websocket/?finger=" // where to find the redezvous se
                     fid = data.from;
                 }
                 pc.setRemoteDescription(data).then( _ =>
-                    pc.createAnswer(peerConnectionOfferAnswerCriteria).then(ans =>
-                        pc.setLocalDescription(ans).then( _ =>
+                    pc.createAnswer(peerConnectionOfferAnswerCriteria).then(ans => {
+                        ans.sdp = tweakSDP(ans.sdp);
+                        pc.setLocalDescription(ans).then(_ =>
                             sendMessage(fid, mid, "answer", ans.sdp)
                         )
-                    )
+                    })
                 )
                     .catch((e) => console.log("set Remote offer error", e));
                 break;
@@ -172,7 +190,7 @@ websocketURL: "wss://pi.pe/websocket/?finger=" // where to find the redezvous se
             .then(desc => {
                 console.log("offer created",);
                 $("#status").text("Making call to host");
-
+                desc.sdp = tweakSDP(desc.sdp);
                 pc.setLocalDescription(desc).then( d => sendMessage(fid, mid, desc.type, desc.sdp));
             })
             .catch(e => console.log("offer not created due to ", e) );
@@ -234,6 +252,29 @@ websocketURL: "wss://pi.pe/websocket/?finger=" // where to find the redezvous se
         var secs = Math.floor((diff % 60000) / 1000);
         $("#duration").text(""+mins+":"+secs);
     }
+    function checkLoss(){
+        pc.getReceivers()[0].getStats().then(
+            function(rs) {
+                rs.forEach( function (d){
+                        if(d.type ==="inbound-rtp"){
+                            var recvd = d.packetsReceived;
+                            var lost = d.packetsLost;
+                            if (lost > lastLoss){
+                                $("#packetLoss").show();
+                                var diffl = lost - lastLoss;
+                                var diffp = recvd -lastRecv;
+                                var pct = Math.ceil(100.0 * diffl /diffp);
+                                $("#countZero").text(""+pct);
+                            } else {
+                                $("#packetLoss").hide();
+                            }
+                            lastLoss = lost;
+                            lastRecv = recvd;
+                        }
+                    }
+                )
+            });
+    }
 
     // called when webRTC presents us with a fresh remote audio stream
     function addStream(stream,kind) {
@@ -267,6 +308,8 @@ websocketURL: "wss://pi.pe/websocket/?finger=" // where to find the redezvous se
             } else {
                 recorder = window.setInterval(repaintDuration,10000);
             }
+            window.setInterval(checkLoss,5000);
+
             startRecTime = Date.now();
 
             // audio together here.
@@ -479,6 +522,8 @@ function accepted() {
 
     $( document ).ready( _ => {
         $("#chosenAction").hide();
+        $("#packetLoss").hide();
+
         $("#mute").click(_ => setMute(!mute));
         setRole();
     });
