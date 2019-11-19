@@ -36,6 +36,9 @@
     <div class="alert alert-danger" id="packetLoss">
         <strong id="countZero"></strong>% packet loss detected.
     </div>
+    <div class="alert alert-info" id="statsZone">
+        <strong id="delay"></strong> delay between you and me
+    </div>
 </div>
 
 <div id="share" class="modal" tabindex="-1" role="dialog">
@@ -271,6 +274,9 @@ websocketURL: "wss://pi.pe/websocket/?finger=" // where to find the redezvous se
                             lastLoss = lost;
                             lastRecv = recvd;
                         }
+                        if ((d.type ==="candidate-pair")&&(d.nominated)){
+                            $("#delay").text(""+d.currentRoundTripTime);
+                        }
                     }
                 )
             });
@@ -311,7 +317,7 @@ websocketURL: "wss://pi.pe/websocket/?finger=" // where to find the redezvous se
             } else {
                 recorder = window.setInterval(repaintDuration,10000);
             }
-            window.setInterval(checkLoss,5000);
+            window.setInterval(checkLoss,1000);
 
             startRecTime = Date.now();
 
@@ -319,6 +325,7 @@ websocketURL: "wss://pi.pe/websocket/?finger=" // where to find the redezvous se
             // depends on role
             console.log('Audio sample Rate is '+ myac.sampleRate);
             $("#chosenAction").show();
+            $("#statsZone").show();
         }
     }
 
@@ -535,6 +542,8 @@ function accepted() {
     $( document ).ready( _ => {
         $("#chosenAction").hide();
         $("#packetLoss").hide();
+        $("#statsZone").hide();
+
 
         $("#mute").click(_ => setMute(!mute));
         setRole();
