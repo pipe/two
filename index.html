@@ -37,7 +37,9 @@
         <strong id="countZero"></strong>% packet loss detected.
     </div>
     <div class="alert alert-info" id="statsZone">
-        <strong id="delay"></strong> sec delay between you and me
+        local <strong id="local"></strong><br/>
+        <strong id="delay"></strong> sec delay<br/>
+        remote <strong id="remote"></strong><br/>
     </div>
 </div>
 
@@ -276,6 +278,12 @@ websocketURL: "wss://pi.pe/websocket/?finger=" // where to find the redezvous se
                         }
                         if ((d.type ==="candidate-pair")&&(d.nominated)){
                             $("#delay").text(""+d.currentRoundTripTime);
+                        }
+                        if (d.type === "remote-candidate"){
+                            $("#remote").text(d.candidateType);
+                        }
+                        if (d.type === "local-candidate"){
+                            $("#local").text(d.candidateType);
                         }
                     }
                 )
