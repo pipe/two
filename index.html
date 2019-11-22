@@ -141,15 +141,20 @@ websocketURL: "wss://pi.pe/websocket/?finger=" // where to find the redezvous se
                 if (fid == null) {
                     fid = data.from;
                 }
-                pc.setRemoteDescription(data).then( _ =>
-                    pc.createAnswer(peerConnectionOfferAnswerCriteria).then(ans => {
-                        ans.sdp = tweakSDP(ans.sdp);
-                        pc.setLocalDescription(ans).then(_ =>
-                            sendMessage(fid, mid, "answer", ans.sdp)
-                        )
-                    })
-                )
-                    .catch((e) => console.log("set Remote offer error", e));
+                if(recorder && initiator){
+                    stopCall();
+                    document.location = document.location;
+                } else {
+                    pc.setRemoteDescription(data).then(_ =>
+                        pc.createAnswer(peerConnectionOfferAnswerCriteria).then(ans => {
+                            ans.sdp = tweakSDP(ans.sdp);
+                            pc.setLocalDescription(ans).then(_ =>
+                                sendMessage(fid, mid, "answer", ans.sdp)
+                            )
+                        })
+                    )
+                        .catch((e) => console.log("set Remote offer error", e));
+                }
                 break;
             case "answer":
                 pc.setRemoteDescription(data)
