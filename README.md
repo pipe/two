@@ -1,6 +1,6 @@
 # PodCall - a remote interview recording app.
 
-## features
+## Features
 1) Simple - send a link your guest opens on their smartphone
 2) You focus on your interview
 3) FREE + opensource
