@@ -210,7 +210,7 @@ websocketURL: "wss://pi.pe/websocket/?finger=" // where to find the redezvous se
         for (var i=0;i<lines.length;i++){
             line = lines[i];
             if (line.startsWith("a=fmtp:111")){
-                lines[i]= "a=fmtp:111 minptime=10; ptime=60; useinbandfec=1";
+                lines[i]= "a=fmtp:111 minptime=20; ptime=60; useinbandfec=1; stereo=1; maxaveragebitrate=32000";
             }
         }
         return (lines.join("\r\n"));
@@ -301,7 +301,6 @@ websocketURL: "wss://pi.pe/websocket/?finger=" // where to find the redezvous se
         } else {
             clearInterval(statsTick);
         }
-// save file here....
         $("#status").text("Call ended.");
 
     }
@@ -417,6 +416,9 @@ function addStream(stream,kind) {
             if (pc.iceConnectionState === "failed"){
                 stopCall();
             }
+            if (pc.iceConnectionState === "connected"){
+                checkLoss();
+            }
         };
         // specification of WEBRTC is in flux - so we test to see if ontrack callback exists
         if ('ontrack' in pc) {
@@ -447,7 +449,7 @@ function addStream(stream,kind) {
                 var act = $("#stopCall");
                 act.click( _ => stopCall() );
                 window.onbeforeunload = function() {
-                    return !saved ? "If you leave this page you will end the interview." : null;
+                    return pc.iceConnectionState=="connected" ? "If you leave this page you will end the call." : null;
                 }
             }
         };
@@ -486,14 +488,12 @@ function setupAudio() {
 
 
 function shared() {
-    setupRTC();
     setupAudio().then(_ => {
         console.log("ready for offer");
         $("#status").text("Waiting for guest.");
     });
 }
 function accepted() {
-    setupRTC();
     setupAudio().then(_ => {
         console.log("ready for offer");
         $("#status").text("Mic available");
@@ -554,6 +554,7 @@ function accepted() {
                 smodal = initiator ? "#share" : "#accept";
 
                 $(smodal).modal('show');
+                setupRTC();
             };
             socket.onerror = (e) => {
                 console.log("can't open websocket", e);
@@ -598,8 +599,6 @@ function accepted() {
         } else {
             $('#nowebrtc').modal('show');
         }
-
-
     });
 </script>
 </body>
