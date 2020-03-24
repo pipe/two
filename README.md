@@ -31,4 +31,7 @@ place the phone somewhere comfortable, adjust the speaker volume and just talk. 
 
 Enjoy! 
 
+## HELP NEEDED
+The UX needs a re-work so it fits on multiple screens
+
 
