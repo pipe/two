@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
-    <title>|pipe| 2 person video call</title>
+    <title>|pipe| 2 person video call (beta)</title>
     <!-- Required meta tags -->
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
@@ -11,6 +11,54 @@
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
 
     <style>
+
+        @media (min-height: 199.99px) and (min-width: 149.99px) {
+            .video {
+                width: 240px;
+                height: 320px;
+                margin: 0 auto;
+            }
+
+            h1 {
+                font-size: 1.3em;
+            }
+        }
+
+
+        @media (min-height: 699.99px) and (min-width: 299.99px) {
+            .video {
+                width: 240px;
+                height: 604px;
+            }
+        }
+
+        @media (min-height: 650.99px) and (min-width: 350.99px) {
+            .video {
+                width: 309px;
+                height: 550px;
+            }
+        }
+
+        @media (min-height: 799.99px) and (min-width: 599.99px) {
+            .video {
+                width: 480px;
+                height: 640px;
+
+            }
+        }
+        @media (min-height: 1023.99px) and (min-width: 799.99px) {
+            .video {
+                width: 720px;
+                height: 960px;
+            }
+        }
+        @media (min-height: 1299.99px) and (min-width: 999.99px) {
+            .video {
+                width: 960px;
+                height: 1280px;
+            }
+        }
+
     </style>
 
 </head>
@@ -22,7 +70,9 @@
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/js/bootstrap.min.js" crossorigin="anonymous"></script>
 <script src="https://pi.pe/iot/js/qrcode.js"></script>
 
-<a href="index.html"><h1 id="title" class="text-center">|pipe| 2 way video call</h1></a>
+<a href="index.html"><h1 id="title" class="text-center">Two</h1></a>
+<video class="video" id="them" playsinline autoplay muted>
+</video>
 <div class="container">
     <h2>Role:  <span class="badge badge-primary" id="role"></span></h2>
     <h2>Status: <span class="badge badge-primary" id="status"></span></h2>
@@ -47,10 +97,10 @@
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Send this url to the interviewee. </h5>
+                <h5 class="modal-title">Send this url to the guest. </h5>
             </div>
             <div class="modal-body" id="shareQR">
-                <p>Share this URL to request an interview</p>
+                <p>Share this web page using your phone's 'share' menu item at the top of the screen</p>
             </div>
             <div class="modal-footer">
                 <button id="shareDone" type="button" class="btn btn-secondary" data-dismiss="modal" onclick="shared();">Done</button>
@@ -62,10 +112,11 @@
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Accept an interview</h5>
+                <h5 class="modal-title">Accept a call</h5>
             </div>
             <div class="modal-body">
                 <p>Click 'accept' to start the call.</p>
+                <p>You'll also need to permit access to your camera and microphone</p>
             </div>
             <div class="modal-footer">
                 <button id="callAccept" type="button" class="btn btn-secondary" data-dismiss="modal" onclick="accepted();">Accept</button>
@@ -106,8 +157,7 @@
         </div>
     </div>
 </div>
-<video id="them" width="480" height="640" playsinline autoplay muted>
-</video>
+
 <script>
 var properties = {
 websocketURL: "wss://pi.pe/websocket/?finger=" // where to find the redezvous server.
@@ -116,11 +166,19 @@ websocketURL: "wss://pi.pe/websocket/?finger=" // where to find the redezvous se
 
 
     var webRTCconfiguration = {
+        host : {
         "iceServers": [
             {urls: "stun:146.148.121.175:3478"},
             {urls: "turn:146.148.121.175:3478?transport=udp", 'credential': 'nexus5x', 'username': 'smartphone'},
         ],
         "bundlePolicy":"max-bundle","iceCandidatePoolSize":1
+    },
+        guest: {
+            "iceServers": [
+                {urls: "stun:146.148.121.175:3478"},
+            ],
+            "bundlePolicy":"max-bundle","iceCandidatePoolSize":1
+        }
     };
 
 
@@ -331,7 +389,7 @@ function addStream(stream,kind) {
 
     // configure local peerconnection and handlers
     function setupRTC(){
-        pc = new RTCPeerConnection(webRTCconfiguration, null);
+        pc = new RTCPeerConnection(webRTCconfiguration[initiator?"host":"guest"], null);
         console.log("created peer connection");
 
         pc.onicecandidate = (e) => {
