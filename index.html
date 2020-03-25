@@ -68,7 +68,6 @@
 <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.3/umd/popper.min.js" crossorigin="anonymous"></script>
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/js/bootstrap.min.js" crossorigin="anonymous"></script>
-<script src="https://pi.pe/iot/js/qrcode.js"></script>
 
 <a href="index.html"><h1 id="title" class="text-center">Two</h1></a>
 <video class="video" id="them" playsinline autoplay muted>
@@ -101,6 +100,7 @@
             </div>
             <div class="modal-body" id="shareQR">
                 <p>Share this web page using your phone's 'share' menu item at the top of the screen</p>
+                <p>Then come back to this screen and click the 'done' button.</p>
             </div>
             <div class="modal-footer">
                 <button id="shareDone" type="button" class="btn btn-secondary" data-dismiss="modal" onclick="shared();">Done</button>
@@ -274,8 +274,13 @@ websocketURL: "wss://pi.pe/websocket/?finger=" // where to find the redezvous se
         };
 
         var message = JSON.stringify(messageJ);
-        console.log("sending ", messageJ);
-        socket.send(message);
+        if (socket.readyState == 1 ){
+            console.log("sending ", message);
+            socket.send(message);
+        } else {
+            console.log("not sending \n"+ message+ "\n because websocket readyState ="+socket.readyState);
+            $("#status").text("Server Problem?");
+        }
     }
 
     // button actions
@@ -418,6 +423,7 @@ function addStream(stream,kind) {
             }
             if (pc.iceConnectionState === "connected"){
                 checkLoss();
+                socket.close();
             }
         };
         // specification of WEBRTC is in flux - so we test to see if ontrack callback exists
@@ -533,19 +539,11 @@ function accepted() {
             // this has the effect of getting our id into the browser bar -
             // making it easy to share etc.
         } else {
-            var qrcode = new QRCode(document.getElementById("shareQR"), {
-                width: 280,
-                height: 280,
-                correctLevel: QRCode.CorrectLevel.L
-            });
             socket = new WebSocket( properties.websocketURL + mid);
             socket.onmessage = messageDeal;
             socket.onopen = (_) => {
                 var url = document.location.href;
                 console.log("href = "+url);
-                if (url) {
-                    qrcode.makeCode(url);
-                }
                 initiator = (mid === cid);
                 var smodal;
 
@@ -563,7 +561,7 @@ function accepted() {
             };
             socket.onclose = (e) => {
                 console.log(" websocket closed", e);
-                $("#status").text("Server problems ?");
+                //$("#status").text("Server problems ?");
 
             };
 
