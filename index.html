@@ -309,7 +309,8 @@ websocketURL: "wss://pi.pe/websocket/?finger=" // where to find the redezvous se
             clearInterval(statsTick);
         }
         $("#status").text("Call ended.");
-
+        var dur = Date.now() - startRecTime;
+        window.location="thanks.html?dur="+dur;
     }
 
 
@@ -599,7 +600,6 @@ function isFacebookApp() {
         $("#statsZone").hide();
         if (isFacebookApp()){
             $("#status").text("Facebook apps block webrtc in their 'browser' ");
-            $('#facebookapp').modal('show');
             console.log("UGH, facebook. !");
         } else {
             if ('RTCPeerConnection' in window) {
