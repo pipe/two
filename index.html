@@ -141,16 +141,17 @@
         </div>
     </div>
 </div>
-<div id="nomediaapi" class="modal" tabindex="-1" role="dialog">
+<div id="facebookapp" class="modal" tabindex="-1" role="dialog">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Sorry</h5>
             </div>
             <div class="modal-body">
-                <p>Unfortunately the browser you are using does not support the media recorder API.</p>
+                <p>Unfortunately the Facebook apps block webRTC.</p>
                 <p>Please try hosting the call with Chrome or FireFox or Edge.</p>
-                <p>Your guest can use any modern browser</p>
+                <p>Go to <pre>https://pipe.github.io/two</pre> outside the Facebook or instagram app.</p>
+                <p>Your guest can use any modern browser e.g. Chrome or FireFox or Edge or Safari</p>
             </div>
             <div class="modal-footer">
                 <button id="sad" type="button" class="btn btn-secondary" data-dismiss="modal" >Accept</button>
@@ -514,8 +515,8 @@ function accepted() {
 // change their mind, if their circumstances have changed since the invite was sent.
 
     function setRole() {
-        cid = $.getUrlVar("podcastId");
-        mid = localStorage['podcastId'];
+        cid = $.getUrlVar("twoId");
+        mid = localStorage['twoId'];
         //var act = $("#action");
         if (!mid) {
             var array = new Uint32Array(8);
@@ -533,10 +534,10 @@ function accepted() {
             }
             mid = hexCodes.join("").toLowerCase();
             console.log("mid =", mid);
-            localStorage['podcastId'] = mid;
+            localStorage['twoId'] = mid;
         }
         if (cid == null){
-            document.location = location.pathname + "?" + "podcastId=" + mid ;
+            document.location = location.pathname + "?" + "twoId=" + mid ;
             // this has the effect of getting our id into the browser bar -
             // making it easy to share etc.
         } else {
@@ -569,6 +570,10 @@ function accepted() {
         }
     }
 
+function isFacebookApp() {
+    var ua = navigator.userAgent || navigator.vendor || window.opera;
+    return (ua.indexOf("FBAN") > -1) || (ua.indexOf("FBAV") > -1) || (ua.indexOf('Instagram') > -1) ;
+}
     // some housekeeping
 
     $.extend({
@@ -592,11 +597,21 @@ function accepted() {
         $("#chosenAction").hide();
         $("#packetLoss").hide();
         $("#statsZone").hide();
-        if (window.RTCPeerConnection){
-            $("#mute").click(_ => setMute(!mute));
-            setRole();
+        if (isFacebookApp()){
+            $("#status").text("Facebook apps block webrtc in their 'browser' ");
+            $('#facebookapp').modal('show');
+            console.log("UGH, facebook. !");
         } else {
-            $('#nowebrtc').modal('show');
+            if ('RTCPeerConnection' in window) {
+                console.log("I see webRTC !");
+                $("#status").text("Have webRTC available ");
+                $("#mute").click(_ => setMute(!mute));
+                setRole();
+            } else {
+                console.log("I don't see webRTC !");
+                $("#status").text("Dont have webRTC available ");
+                $('#nowebrtc').modal('show');
+            }
         }
     });
 </script>

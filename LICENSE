@@ -1,9 +1,7 @@
-The MIT license is applied to this software and a patent license for 
-non-commercial use is provided for the invention it enables.
-
 MIT License
 
 Copyright (c) 2017, 2018 Family Systems Ltd.
+Copyright (c) 2019, 2020 Pi.pe GmbH
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -23,7 +21,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-Patent License for issued US Patents US9087521 and US9538129: 
 
-Family Systems will take no patent infringement action against 
-personal non-commercial use of our hereby licensed software. 
+Note that earlier versions of this code demonstrated the patented 'unrupt'
+technique to delay audio and enforce politeness. This version does not
+delay the audio in that way and does not use the patent.
