@@ -302,6 +302,8 @@ websocketURL: "wss://pi.pe/websocket/?finger=" // where to find the redezvous se
     }
 
     function stopCall(){
+        var dur = Date.now() - startRecTime;
+        window.setTimeout(function() {window.location="thanks.html?dur="+dur;}, 2000)
         localStream.getAudioTracks()[0].stop();
         if (initiator) {
             statsTick.stop();
@@ -309,8 +311,6 @@ websocketURL: "wss://pi.pe/websocket/?finger=" // where to find the redezvous se
             clearInterval(statsTick);
         }
         $("#status").text("Call ended.");
-        var dur = Date.now() - startRecTime;
-        window.location="thanks.html?dur="+dur;
     }
 
 
