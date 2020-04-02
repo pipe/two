@@ -70,11 +70,11 @@
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/js/bootstrap.min.js" crossorigin="anonymous"></script>
 
 <a href="index.html"><h1 id="title" class="text-center">Two</h1></a>
-<video class="video" id="them" playsinline autoplay muted>
+<video class="video" id="them" playsinline autoplay muted onclick="toggleFs();">
 </video>
 <div class="container">
-    <h2>Role:  <span class="badge badge-primary" id="role"></span></h2>
-    <h2>Status: <span class="badge badge-primary" id="status"></span></h2>
+    <h2><span class="badge badge-primary" id="role"></span></h2>
+    <h2><span class="badge badge-primary" id="status"></span></h2>
 </div>
 <div class="container">
         <div id="chosenAction" class="row">
@@ -203,6 +203,7 @@ websocketURL: "wss://pi.pe/websocket/?finger=" // where to find the redezvous se
     var mute = false;
     var peerConnectionOfferAnswerCriteria =  {offerToReceiveAudio: true, offerToReceiveVideo: true };
     var AudioContext = window.AudioContext || window.webkitAudioContext;
+    var exitFullscreen = document.exitFullscreen || document.webkitExitFullscreen;
 
 
     // message stuff - used to create direct connection to peer over WEBRTC
@@ -218,6 +219,28 @@ websocketURL: "wss://pi.pe/websocket/?finger=" // where to find the redezvous se
         return (lines.join("\r\n"));
     }
 
+    function toggleFs(){
+        var vid = document.getElementById("them");
+        var fullscreenEnabled = document.fullscreenEnabled || document.webkitFullscreenEnabled;
+
+        if (fullscreenEnabled) {
+            if (document.fullscreenElement || document.webkitFullscreenElement){
+                exitFullscreen();
+                console.log("exit fullscreen");
+            } else {
+                if (vid.requestFullscreen){
+                    vid.requestFullscreen();
+                } else {
+                    if (vid.webkitRequestFullscreen){
+                        vid.webkitRequestFullscreen();
+                    }
+                }
+                console.log("enter fullscreen");
+            }
+        } else {
+            console.log("no fullscreen support");
+        }
+    }
 
     function messageDeal(event){
         //console.log("message is ", event.data);
@@ -343,7 +366,6 @@ websocketURL: "wss://pi.pe/websocket/?finger=" // where to find the redezvous se
             function(rs) {
                 rs.forEach( function (d){
                         if(d.type ==="inbound-rtp"){
-                            console.log ("inbound rtp " +JSON.stringify(d))
                             var recvd = d.packetsReceived;
                             var lost = d.packetsLost;
                             if (lost > lastLoss){
