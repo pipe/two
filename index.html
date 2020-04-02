@@ -210,10 +210,14 @@ websocketURL: "wss://pi.pe/websocket/?finger=" // where to find the redezvous se
 
     function tweakSDP(sdp){
         var lines = sdp.split("\r\n");
+        var mode = "none";
         for (var i=0;i<lines.length;i++){
-            line = lines[i];
-            if (line.startsWith("a=fmtp:111")){
-                lines[i]= "a=fmtp:111 minptime=20; ptime=60; useinbandfec=1; stereo=1; maxaveragebitrate=32000";
+            var line = lines[i];
+            if (line.startsWith("m=")){
+                mode = line;
+            }
+            if (mode.startsWith("m=audio") &&  line.startsWith("a=fmtp:111")){
+                lines[i]= "a=fmtp:111 minptime=20; ptime=60; useinbandfec=1; stereo=1; maxaveragebitrate=32000;";
             }
         }
         return (lines.join("\r\n"));
