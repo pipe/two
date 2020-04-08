@@ -151,6 +151,7 @@
                 <p>Unfortunately the Facebook apps block webRTC.</p>
                 <p>Please try hosting the call with Chrome or FireFox or Edge.</p>
                 <p>Go to <pre>https://pipe.github.io/two</pre> outside the Facebook or instagram app.</p>
+                <p>You can do this from the three dot menu on the top right of your screen.</p>
                 <p>Your guest can use any modern browser e.g. Chrome or FireFox or Edge or Safari</p>
             </div>
             <div class="modal-footer">
@@ -626,6 +627,7 @@ function isFacebookApp() {
         $("#statsZone").hide();
         if (isFacebookApp()){
             $("#status").text("Facebook apps block webrtc in their 'browser' ");
+            $("#facebookapp").show();
             console.log("UGH, facebook. !");
         } else {
             if ('RTCPeerConnection' in window) {
