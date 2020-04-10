@@ -628,8 +628,7 @@ function isFacebookApp() {
        // it should detect the horrible mess that is chrome on ios
        // and various other ugly captives....
 
-    return window.RTCPeerConnection !== undefined && window.RTCPeerConnection !== null &&
-        navigator.getUserMedia !== undefined && navigator.getUserMedia !== null;
+    return ('RTCPeerConnection' in window) && ("mediaDevices" in navigator) && ("getUserMedia" in navigator.mediaDevices);
     };
 
 
