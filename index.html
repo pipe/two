@@ -132,8 +132,9 @@
                 <h5 class="modal-title">Sorry</h5>
             </div>
             <div class="modal-body">
-                <p>Unfortunately the browser you are using does not support WebRTC.</p>
-                <p>Please retry using Safari, Chrome, FireFox, Edge - or pretty much any modern browser</p>
+                <p>Unfortunately the browser you are using does not support WebRTC video calls.</p>
+                <p>Please retry using Safari, Chrome, FireFox, Edge - or pretty much any mainstream browser.</p>
+                <p>You can probably do this with a 'share with' or 'open in' menu item.</p>
             </div>
             <div class="modal-footer">
                 <button id="sadder" type="button" class="btn btn-secondary" data-dismiss="modal" >Accept</button>
@@ -404,7 +405,7 @@ function addStream(stream,kind) {
     if (!kind) {
         kind = "audio/video";
     }
-    $("#status").text("Call connected.");
+    $("#status").text("Call connected. Tap video to enlarge");
 
     console.log("got new stream" + stream + " kind =" + kind);
     var me = document.getElementById("them");
@@ -621,7 +622,18 @@ function isFacebookApp() {
         }
     });
 
-    $( document ).ready( _ => {
+   function isWebrtcSupported() {
+       // tip of the hat to Janus for this test :
+       // https://groups.google.com/forum/#!topic/meetecho-janus/lRjYn0C9BYU
+       // it should detect the horrible mess that is chrome on ios
+       // and various other ugly captives....
+
+    return window.RTCPeerConnection !== undefined && window.RTCPeerConnection !== null &&
+        navigator.getUserMedia !== undefined && navigator.getUserMedia !== null;
+    };
+
+
+$( document ).ready( _ => {
         $("#chosenAction").hide();
         $("#packetLoss").hide();
         $("#statsZone").hide();
@@ -630,7 +642,7 @@ function isFacebookApp() {
             $("#facebookapp").show();
             console.log("UGH, facebook. !");
         } else {
-            if ('RTCPeerConnection' in window) {
+            if (isWebrtcSupported()) {
                 console.log("I see webRTC !");
                 $("#status").text("Have webRTC available ");
                 $("#mute").click(_ => setMute(!mute));
