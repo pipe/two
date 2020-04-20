@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
-    <title>Hello, world!</title>
+    <title>Browser Test page</title>
     <!-- Required meta tags -->
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css" integrity="sha384-PsH8R72JQ3SOdhVi3uxftmaW6Vc51MKb0q5P2rRUpPvrszuE4W1povHYgTpBfshb" crossorigin="anonymous">
 </head>
 <body>
-<h1 id="title" class="text-center">Unrupt Browser Test Page</h1>
+<h1 id="title" class="text-center">Browser Test Page</h1>
 <h3 id="useragent"></h3>
 <!-- Optional JavaScript -->
 <!-- jQuery first, then Popper.js, then Bootstrap JS -->
@@ -46,13 +46,8 @@
 
     </div>
 </div>
-<div class="card">
-    <h4 class="card-header">Caller/Callee test</h4>
-    <div class="card-body">
-        <button id="action" type="button" class="btn btn-primary"></button>
-    </div>
-<script>
-    var ac = null;
+    <script>
+var ac = null;
 
 
     function setTag(tag,val){
@@ -147,65 +142,6 @@
             setTag(tag,val);
         }
     }
-    function setAct() {
-        var cid = $.getUrlVar("unruptId");
-        var mid = localStorage['unruptId'];
-        var act = $("#action");
-        if (!mid) {
-            var array = new Uint32Array(8);
-            window.crypto.getRandomValues(array);
-            var hexCodes = [];
-            for (var i = 0; i < array.length; i ++ ){
-                // Using getUint32 reduces the number of iterations needed (we process 4 bytes each time)
-                var value = array[i];
-                // toString(16) will give the hex representation of the number without padding
-                var stringValue = value.toString(16)
-                // We use concatenation and slice for padding
-                var padding = '00000000'
-                var paddedValue = (padding + stringValue).slice(-padding.length)
-                hexCodes.push(paddedValue);
-            }
-            mid = hexCodes.join("").toLowerCase();
-            console.log("mid ="+mid);
-            localStorage['unruptId'] = mid;
-        }
-        if (cid == null){
-            act.text("make shareable page");
-            act.click(function () {
-                document.location = "tests.html?"+"unruptId="+mid;
-            });
-        } else if (mid === cid) {
-            act.text("please share this page as a link");
-        } else {
-            act.text("accept call");
-            act.click(function () {
-
-            });
-        }
-    }
-    $.extend({
-        getUrlVars: function(){
-            var vars = [], hash;
-            var hashes = window.location.href.slice(window.location.href.indexOf('?') + 1).split('&');
-            for(var i = 0; i < hashes.length; i++)
-            {
-                hash = hashes[i].split('=');
-                vars.push(hash[0]);
-                vars[hash[0]] = hash[1];
-            }
-            return vars;
-        },
-        getUrlVar: function(name){
-            return $.getUrlVars()[name];
-        }
-    });
-
-    //Second call with this:
-    // Get object of URL parameters
-    //var allVars = $.getUrlVars();
-
-    // Getting URL var by its name
-    // var byName = $.getUrlVar('name');
     $( document ).ready(function() {
         $("#useragent").text(navigator.userAgent);
         hasPeerConnection();
@@ -217,7 +153,6 @@
         hasMediaStreamSource();
         hasMediaStreamDestination();
         hasSha265();
-        setAct();
     });
 </script>
 </body>
