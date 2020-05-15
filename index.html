@@ -251,11 +251,12 @@ websocketURL: "wss://pi.pe/websocket/?finger=" // where to find the redezvous se
 
     function toggleFs(){
         var vid = document.getElementById("vscreen");
-        var fullscreenEnabled = document.fullscreenEnabled || document.webkitFullscreenEnabled;
+        var fullscreenEnabled = document.fullscreenEnabled || document.webkitSupportsFullscreen;
 
         if (fullscreenEnabled) {
+            console.log("have fullscreen support on div");
             if (document.fullscreenElement || document.webkitFullscreenElement){
-                exitFullscreen();
+                document.exitFullscreen();
                 console.log("exit fullscreen");
             } else {
                 if (vid.requestFullscreen){
@@ -268,7 +269,16 @@ websocketURL: "wss://pi.pe/websocket/?finger=" // where to find the redezvous se
                 console.log("enter fullscreen");
             }
         } else {
-            console.log("no fullscreen support");
+            console.log("no fullscreen support on div");
+            // fall back to fullscreening the video....
+            var v = document.getElementById("them");
+            if (v.webkitDisplayingFullscreen){
+                console.log("exit fullscreen video");
+                v.webkitExitFullscreen();
+            } else {
+                console.log("enter fullscreen video");
+                v.webkitEnterFullscreen();
+            }
         }
     }
 
