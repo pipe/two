@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
-    <title>|pipe| 2 person video call (beta)</title>
+    <title>RDV-Family by |pipe|</title>
     <!-- Required meta tags -->
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
@@ -12,18 +12,26 @@
 
     <style>
 
-        @media (min-height: 199.99px) and (min-width: 149.99px) {
+        @media (min-height: 199.99px) and (min-width: 149.99px) and (orientation : portrait) {
             .video {
                 width: 240px;
                 height: 320px;
                 margin: 0 auto;
             }
-
             h1 {
                 font-size: 1.3em;
             }
         }
-
+        @media (min-height: 199.99px) and (min-width: 149.99px) and (orientation : landscape) {
+            .video {
+                width: 320px;
+                height: 240px;
+                margin: 0 auto;
+            }
+            h1 {
+                font-size: 1.3em;
+            }
+        }
 
         @media (min-height: 699.99px) and (min-width: 299.99px) {
             .video {
@@ -68,27 +76,29 @@
 <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.3/umd/popper.min.js" crossorigin="anonymous"></script>
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/js/bootstrap.min.js" crossorigin="anonymous"></script>
-
-<a href="index.html"><h1 id="title" class="text-center">Two</h1></a>
-<video class="video" id="them" playsinline autoplay muted onclick="toggleFs();">
-</video>
-<div class="container">
-    <h2><span class="badge badge-primary" id="role"></span></h2>
-    <h2><span class="badge badge-primary" id="status"></span></h2>
-</div>
-<div class="container">
+<div class="card">
+    <a href="index.html"><h1 id="title" class="text-center">RDV-Family</h1></a>
+    <video class="video" id="them" playsinline autoplay muted onclick="toggleFs();">
+    </video>
+    <div class="container">
         <div id="chosenAction" class="row">
             <button id="mute" type="button" class="btn btn-primary btn-lg"><i id="muteIcon" class="fa fa-microphone fa-2x" aria-hidden="true"></i></button>
             <button id="stopCall" type="button" class="btn btn-primary btn-lg"><i id="stopIcon" class="fa fa-stop fa-2x" aria-hidden="true"></i></button>
+
+            <div>Duration <span class="badge badge-error" id="duration"></span></div>
+            <div class="alert alert-danger" id="packetLoss">
+                <strong id="countZero"></strong>% packet loss detected.
+            </div>
+            <div class="alert alert-info" id="statsZone">
+                local <strong id="local"></strong><br/>
+                <strong id="delay"></strong> sec delay<br/>
+                remote <strong id="remote"></strong><br/>
+            </div>
         </div>
-    <div>Duration <span class="badge badge-error" id="duration"></span></div>
-    <div class="alert alert-danger" id="packetLoss">
-        <strong id="countZero"></strong>% packet loss detected.
-    </div>
-    <div class="alert alert-info" id="statsZone">
-        local <strong id="local"></strong><br/>
-        <strong id="delay"></strong> sec delay<br/>
-        remote <strong id="remote"></strong><br/>
+        <div class="row">
+            <h2><span class="badge badge-primary" id="role"></span></h2>
+            <h2><span class="badge badge-primary" id="status"></span></h2>
+        </div>
     </div>
 </div>
 
