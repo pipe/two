@@ -72,6 +72,9 @@
             border-color: transparent;
             opacity: 0.60;
         }
+        .faint {
+            opacity: 10%;
+        }
 
     </style>
 
@@ -89,6 +92,8 @@
     <div class="card-body">
         <div class="card" id="vscreen">
             <video class="img-fluid card-img" id="them" playsinline autoplay muted >
+            </video>
+            <video class="img-fluid card-img-overlay" id="me" playsinline autoplay muted >
             </video>
             <div id="chosenAction" class="card-img-overlay">
                 <button id="mute" type="button" class="btn btn-trans btn-lg"><i id="muteIcon" class="fa fa-microphone fa-2x" aria-hidden="true"></i></button>
@@ -184,6 +189,7 @@
 <footer><span>See our <a href="https://github.com/pipe/two">Github</a> for source code</span>
     <span>See also <a href="https://pi.pe/privacy_policy/index.html">Privacy</a>
        and <a href="https://pi.pe/impressum/index.html">Impressum</a></span>
+    <span onclick="test()" >test</span>
 </footer>
 <script>
 var properties = {
@@ -243,7 +249,7 @@ websocketURL: "wss://pi.pe/websocket/?finger=" // where to find the redezvous se
                 mode = line;
             }
             if (mode.startsWith("m=audio") &&  line.startsWith("a=fmtp:111")){
-                lines[i]= "a=fmtp:111 minptime=20; ptime=60; useinbandfec=1; stereo=1; maxaveragebitrate=32000;";
+                lines[i]= "a=fmtp:111 minptime=20; ptime=20; useinbandfec=1; stereo=1; maxaveragebitrate=32000;";
             }
         }
         return (lines.join("\r\n"));
@@ -470,12 +476,14 @@ function addStream(stream,kind) {
     $("#status").text("Call connected. Tap video to enlarge");
 
     console.log("got new stream" + stream + " kind =" + kind);
-    var me = document.getElementById("them");
-    me.srcObject = stream;
-    me.onloadedmetadata = function(e) {
-        me.play();
-        me.muted = false;
+    var them = document.getElementById("them");
+    them.srcObject = stream;
+    them.onloadedmetadata = function(e) {
+        them.play();
+        them.muted = false;
     };
+    $( "#me" ).addClass( "faint" );
+
     statsTick = window.setInterval(repaintDuration,10000);
     window.setInterval(checkLoss,1000);
     startRecTime = Date.now();
@@ -568,6 +576,9 @@ function setupAudio() {
         navigator.mediaDevices.getUserMedia(gumConstraints)
             .then((stream) => {
                 localStream = stream;
+                console.log("add local stream");
+                var me = document.getElementById("me");
+                me.srcObject = stream;
                 if (pc.addTrack) {
                     stream.getTracks().forEach(track => {
                         pc.addTrack(track, stream);
@@ -694,8 +705,14 @@ function isFacebookApp() {
        // it should detect the horrible mess that is chrome on ios
        // and various other ugly captives....
 
-    return ('RTCPeerConnection' in window) && ("mediaDevices" in navigator) && ("getUserMedia" in navigator.mediaDevices);
+     return ('RTCPeerConnection' in window) && ("mediaDevices" in navigator) && ("getUserMedia" in navigator.mediaDevices);
     };
+
+    function test(){
+           fetch('https://us-central1-cartonomouse.cloudfunctions.net/twosession?arg='+mid)
+            .then(response => console.log(response))
+            .then(data => console.log(data));
+    }
 
 
 $( document ).ready( _ => {
