@@ -75,7 +75,9 @@
         .faint {
             opacity: 10%;
         }
-
+        .bold {
+            opacity: 80%;
+        }
     </style>
 
 </head>
@@ -99,6 +101,8 @@
                 <button id="mute" type="button" class="btn btn-trans btn-lg"><i id="muteIcon" class="fa fa-microphone fa-2x" aria-hidden="true"></i></button>
                 <button id="stopCall" type="button" class="btn btn-trans btn-lg"><i id="stopIcon" class="fa fa-stop fa-2x" aria-hidden="true"></i></button>
                 <button id="fullScreen" type="button" class="btn btn-trans btn-lg"><i id="fullIcon" class="fa fa-arrows-alt fa-2x" aria-hidden="true"></i></button>
+                <button id="flipCam" type="button" class="btn btn-trans btn-lg"><i id="flipIcon" class="fa fa-upload fa-2x" aria-hidden="true"></i></button>
+
                 <div class="alert alert-danger" id="packetLoss">
                     <strong id="countZero"></strong>% packet loss detected.
                 </div>
@@ -491,7 +495,6 @@ function addStream(stream,kind) {
     $("#statsZone").show();
     var act = $("#fullScreen");
     act.click( _ => toggleFs() );
-
 }
 
     // configure local peerconnection and handlers
@@ -567,7 +570,59 @@ function addStream(stream,kind) {
     }
 
 
-    // plumb the local audio together.
+function swapCam(vconstraint){
+    console.log("swapCam to "+JSON.stringify(vconstraint));
+    navigator.mediaDevices
+        .getUserMedia({
+            video: vconstraint
+        })
+        .then(function(stream) {
+            let videoTrack = stream.getVideoTracks()[0];
+
+            var sender = pc.getSenders().find(function(s) {
+                return s.track.kind == videoTrack.kind;
+            });
+            console.log('found sender:', sender);
+            sender.replaceTrack(videoTrack);
+            localStream = stream;
+            var me = document.getElementById("me");
+            me.srcObject = stream;
+        })
+        .catch(function(err) {
+            console.error('Error happens:', err);
+        });
+}
+function flipLocalOpacityClass(){
+    $( "#me" ).toggleClass( "faint" );
+    $( "#me" ).toggleClass( "bold" );
+
+}
+
+function flipCam(){
+    navigator.mediaDevices.enumerateDevices().then( (d) => {
+        console.log(JSON.stringify(d));
+        var cam = localStream.getVideoTracks()[0].label;
+        console.log("current cam is "+cam);
+
+        var target = null;
+        d.forEach( (dev) => {
+            if (dev.kind == "videoinput") {
+                if (dev.label != cam) {
+                    target = dev.deviceId;
+                    console.log("new cam will be "+dev.label);
+                    console.log("new target "+target);
+
+                }
+            }
+        });
+        if (target != null){
+            swapCam({deviceId: target});
+        }
+    });
+    flipLocalOpacityClass();
+}
+
+// plumb the local audio together.
 function setupAudio() {
 
     var gumConstraints = {audio: true, video: true};
@@ -672,7 +727,7 @@ function accepted() {
                 //$("#status").text("Server problems ?");
 
             };
-
+            $("#flipCam").click( _ => flipCam());
         }
     }
 
