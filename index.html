@@ -494,7 +494,10 @@ function addStream(stream,kind) {
     $("#chosenAction").show();
     $("#statsZone").show();
     var act = $("#fullScreen");
-    act.click( _ => toggleFs() );
+    act.on("click", (event) => {
+        event.preventDefault();
+        toggleFs()
+    } );
 }
 
     // configure local peerconnection and handlers
@@ -561,7 +564,10 @@ function addStream(stream,kind) {
                     sendMessage(fid, mid, "candidate", can.candidate);
                 }
                 var act = $("#stopCall");
-                act.click( _ => stopCall() );
+                act.on("click" ,(event) => {
+                    event.preventDefault();
+                    stopCall()
+                });
                 window.onbeforeunload = function() {
                     return pc.iceConnectionState=="connected" ? "If you leave this page you will end the call." : null;
                 }
@@ -727,7 +733,10 @@ function accepted() {
                 //$("#status").text("Server problems ?");
 
             };
-            $("#flipCam").click( _ => flipCam());
+            $("#flipCam").on("click", (event)=> {
+                event.preventDefault();
+                flipCam()
+            });
         }
     }
 
@@ -782,7 +791,10 @@ $( document ).ready( _ => {
             if (isWebrtcSupported()) {
                 console.log("I see webRTC !");
                 $("#status").text("Have webRTC available ");
-                $("#mute").click(_ => setMute(!mute));
+                $("#mute").on("click", (event) => {
+                    event.preventDefault();
+                    setMute(!mute)
+                });
                 setRole();
             } else {
                 console.log("I don't see webRTC !");
