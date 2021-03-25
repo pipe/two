@@ -386,16 +386,12 @@
             .catch(e => console.log("offer not created due to ", e) );
     }
 
-    function stopCall(){
+    function stopCall() {
         var dur = Date.now() - startRecTime;
         localStream.getAudioTracks()[0].stop();
-        if (initiator) {
-            statsTick.stop();
-        } else {
-            clearInterval(statsTick);
-        }
+        clearInterval(statsTick);
         $("#status").text("Call ended.");
-        window.location="thanks.html?dur="+dur;
+        window.location = "thanks.html?dur=" + dur;
     }
 
 
@@ -547,8 +543,8 @@ function addStream(stream,kind) {
                     console.log("popping candidate off stash")
                     sendMessage(fid, mid, "candidate", can.candidate);
                 }
-                var act = $("#stopCall");
-                act.click( _ => stopCall() );
+                var act = document.getElementById("stopCall");
+                act.onclick =  stopCall ;
                 window.onbeforeunload = function() {
                     return pc.iceConnectionState=="connected" ? "If you leave this page you will end the call." : null;
                 }
