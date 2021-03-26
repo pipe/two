@@ -74,13 +74,21 @@
         }
         .faint {
             transform: scaleX(-1)  translate(0%, -100%);
-            opacity: 5%;
+            opacity: 10%;
+        }
+        .faint-scale {
+            transform:  scaleX(-0.56) scaleY(0.56) translate(0%, -100%) ;
+            opacity: 10%;
+        }
+        .faint-scale-port {
+            transform: translate(0%, -80%) scaleX(-0.56) scaleY(0.56);
+            opacity: 10%;
         }
         .mirrored {
             transform: scaleX(-1) ;
         }
     </style>
-
+<!-- scaleX(-0.75)  scaleY(0.75) translate(0%, -100%) -->
 </head>
 <body>
 <!-- Optional JavaScript -->
@@ -446,8 +454,23 @@
                 )
             });
     }
-
-    // called when webRTC presents us with a fresh remote audio stream
+    function mangleMe(them){
+        var me = document.getElementById("me");
+        $("#them").show();
+        $("#me").removeClass("mirrored");
+        var tland = (them.videoWidth > them.videoHeight);
+        var mland = (me.videoWidth > them.videoHeight);
+        if (mland == tland) {
+            $("#me").addClass("faint");
+        } else {
+            if (mland) {
+                $("#me").addClass("faint-scale");
+            } else {
+                $("#me").addClass("faint-scale-port");
+            }
+        }
+    }
+    // called when webRTC presents us with a fresh remote audio/video stream
 function addStream(stream,kind) {
     if (!kind) {
         kind = "audio/video";
@@ -460,19 +483,13 @@ function addStream(stream,kind) {
     them.onloadedmetadata = function(e) {
         them.play();
         them.muted = false;
-        var me = document.getElementById("me");
-        me.clientWidth = them.clientWidth;
-        me.clientHeight = them.clientHeight;
+        mangleMe(them);
     };
     if (kind ==="video") {
-        $("#them").show();
-        $("#me").removeClass("mirrored");
-        $("#me").addClass("faint");
-
         statsTick = window.setInterval(repaintDuration, 10000);
         window.setInterval(checkLoss, 10000);
         startRecTime = Date.now();
-        $("#chosenAction").show();
+        //$("#chosenAction").show();
         $("#statsZone").show();
         var act = $("#fullScreen");
         act.click(_ => toggleFs());
@@ -729,7 +746,7 @@ function isFacebookApp() {
 
 
 $( document ).ready( _ => {
-        $("#chosenAction").hide();
+        //$("#chosenAction").hide();
         $("#statsZone").hide();
         if (isFacebookApp()){
             $("#status").text("Facebook apps block webrtc in their 'browser' ");
