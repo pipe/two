@@ -96,12 +96,15 @@
 <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.3/umd/popper.min.js" crossorigin="anonymous"></script>
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/js/bootstrap.min.js" crossorigin="anonymous"></script>
+<script src="eggbox.js"></script>
 <div class="card">
     <div class="card-header">
         <div class="row">
             <div class="col align-self-start">
                 <button id="stopCall" type="button" class="btn  btn-lg"><i id="stopIcon" class="fa fa-stop fa-2x" aria-hidden="true"></i></button>
                 <button id="mute" type="button" class="btn  btn-lg"><i id="muteIcon" class="fa fa-microphone fa-2x" aria-hidden="true"></i></button>
+                <div id="eggbox"><div id="musicIn"> IN  :<audio id="ding" src="track.mp3" controls controlslist="nodownload"></audio></div>
+                <div id="musicOut"> OUT :<audio id="dong" controls controlslist="nodownload"></audio></div></div>
             </div>
             <div class="col align-self-start">
                 <a href="index.html"><h1 id="title" >RDV-Family</h1></a>
@@ -227,6 +230,7 @@
     var offerSender;
     var properties ={};
 
+    var eggbox;
 
     var mute = false;
     var peerConnectionOfferAnswerCriteria =  {offerToReceiveAudio: true, offerToReceiveVideo: true };
@@ -605,6 +609,8 @@ function setupAudio() {
 
 
 function shared() {
+    $("#eggbox").show();
+    eggbox.startCall();
     setupAudio().then(_ => {
         console.log("ready for offer");
         $("#status").text("Waiting for guest.");
@@ -758,6 +764,10 @@ $( document ).ready( _ => {
                 $("#status").text("Have webRTC available ");
                 $("#mute").click(_ => setMute(!mute));
                 setRole();
+                $("#eggbox").hide();
+                ding = document.getElementById("ding");
+                dong = document.getElementById("dong");
+                eggbox = new Eggbox(ding,dong);
             } else {
                 console.log("I don't see webRTC !");
                 $("#status").text("Dont have webRTC available ");
