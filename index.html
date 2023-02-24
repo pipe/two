@@ -443,11 +443,12 @@
                         }
                         if ((d.type ==="candidate-pair")&&(d.nominated)){
                             $("#delay").text(""+d.currentRoundTripTime);
+                            cpStats = d;
                         }
-                        if (d.type === "remote-candidate"){
+                        if ((d.type === "remote-candidate") && (cpStats.remoteCandidateId == d.id)){
                             $("#remote").text(d.candidateType);
                         }
-                        if (d.type === "local-candidate"){
+                        if ((d.type === "local-candidate") && (cpStats.localCandidateId == d.id)){
                             $("#local").text(d.candidateType);
                         }
                     }
