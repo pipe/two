@@ -229,6 +229,7 @@
     var lastRecv =0;
     var offerSender;
     var properties ={};
+    var cpStats;
 
     var eggbox;
 
@@ -446,12 +447,13 @@
                             lastRecv = recvd;
                         }
                         if ((d.type ==="candidate-pair")&&(d.nominated)){
+                            cpStats = d;
                             $("#delay").text(""+d.currentRoundTripTime);
                         }
-                        if (d.type === "remote-candidate"){
+                        if ((d.type === "remote-candidate") && (cpStats.remoteCandidateId === d.id)){
                             $("#remote").text(d.candidateType);
                         }
-                        if (d.type === "local-candidate"){
+                        if ((d.type === "local-candidate") && (cpStats.localCandidateId === d.id)){
                             $("#local").text(d.candidateType);
                         }
                     }
