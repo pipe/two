@@ -290,62 +290,68 @@
 
     function messageDeal(event){
         //console.log("message is ", event.data);
-        var data = JSON.parse(event.data);
-        console.log("message data is ", data);
-        if (data.to != mid){
-            alert("message mixup");
-        }
-        switch (data.type) {
-            case "offer":
-                if (fid == null) {
-                    fid = data.from;
-                }
-                if(statsTick && initiator){
-                    stopCall();
-                    document.location = document.location;
-                } else {
-                    if (localStream) {
-                        pc.setRemoteDescription(data).then(_ =>
-                            pc.createAnswer(peerConnectionOfferAnswerCriteria).then(ans => {
-                                ans.sdp = tweakSDP(ans.sdp);
-                                pc.setLocalDescription(ans).then(_ =>
-                                    sendMessage(fid, mid, "answer", ans.sdp)
-                                )
-                            })
-                        )
-                            .catch((e) => console.log("set Remote offer error", e));
-                    } else {
-                        $("#status").text("Guest is ready! - CLICK DONE!");
-                    }
-                }
-                break;
-            case "answer":
-                if (pc.signalingState == 'have-local-offer') {
-                    pc.setRemoteDescription(data)
-                        .then(_ => {
-                            if (offerSender) {
-                                window.clearInterval(offerSender);
-                            }
-                            $("#status").text("Trying to connect call");
-                            $("#action").text("hangup");
-                        })
-                        .catch(e => console.log("set Remote answer error", e));
-                } else {
 
-                }
-                break;
-            case "candidate":
-                var jc = {
-                    sdpMLineIndex: 0,
-                    candidate: data.sdp
-                };
-                console.log("adding candidate ", jc);
-                var nc = new RTCIceCandidate(jc);
-                pc.addIceCandidate(nc)
-                    .then( _ => console.log("added remote candidate"))
-                    .catch((e) => console.log("couldn't add candidate ", e));
-                break;
-        }
+        var lines = event.data.split("\n");
+        console.log("message lines.length= "+ lines.length);
+
+        lines.forEach((line) => {
+            var data = JSON.parse(line);
+            console.log("message data is ", data);
+            if (data.to != mid) {
+                alert("message mixup");
+            }
+            switch (data.type) {
+                case "offer":
+                    if (fid == null) {
+                        fid = data.from;
+                    }
+                    if (statsTick && initiator) {
+                        stopCall();
+                        document.location = document.location;
+                    } else {
+                        if (localStream) {
+                            pc.setRemoteDescription(data).then(_ =>
+                                pc.createAnswer(peerConnectionOfferAnswerCriteria).then(ans => {
+                                    ans.sdp = tweakSDP(ans.sdp);
+                                    pc.setLocalDescription(ans).then(_ =>
+                                        sendMessage(fid, mid, "answer", ans.sdp)
+                                    )
+                                })
+                            )
+                                .catch((e) => console.log("set Remote offer error", e));
+                        } else {
+                            $("#status").text("Guest is ready! - CLICK DONE!");
+                        }
+                    }
+                    break;
+                case "answer":
+                    if (pc.signalingState == 'have-local-offer') {
+                        pc.setRemoteDescription(data)
+                            .then(_ => {
+                                if (offerSender) {
+                                    window.clearInterval(offerSender);
+                                }
+                                $("#status").text("Trying to connect call");
+                                $("#action").text("hangup");
+                            })
+                            .catch(e => console.log("set Remote answer error", e));
+                    } else {
+
+                    }
+                    break;
+                case "candidate":
+                    var jc = {
+                        sdpMLineIndex: 0,
+                        candidate: data.sdp
+                    };
+                    console.log("adding candidate ", jc);
+                    var nc = new RTCIceCandidate(jc);
+                    pc.addIceCandidate(nc)
+                        .then(_ => console.log("added remote candidate"))
+                        .catch((e) => console.log("couldn't add candidate ", e));
+                    break;
+            }
+        });
     }
 
     function sendMessage(to,from,type,data){
