@@ -584,9 +584,12 @@ function setupAudio() {
             .then((stream) => {
                 localStream = stream;
                 console.log("add local stream");
-                var me = document.getElementById("me");
-                me.srcObject = stream;
-
+                let vt = stream.getVideoTracks();
+                if (vt.length == 1){
+                    let me = document.getElementById("me");
+                    me.srcObject = new MediaStream(vt);
+                    // don't want audio here...
+                }
                 stream.getTracks().forEach(track => {
                     pc.addTrack(track, stream);
                     console.log("added local track ", track.id, track.kind);
