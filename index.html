@@ -490,14 +490,16 @@
         } else {
             stream = new MediaStream();
             them.srcObject = stream;
+            them.oncanplay = (e) => {
+                console.log("media can play, so we are playing...")
+                them.play();
+                them.muted = false;
+                mangleMe(them);
+            };
         }
         stream.addTrack(track);
-        them.onloadedmetadata = function(e) {
-            them.play();
-            them.muted = false;
-            mangleMe(them);
-        };
-        if (track.kind ==="video") {
+
+        if ((stream.getVideoTracks().length == 1)&& (stream.getAudioTracks().length == 1)){
             statsTick = window.setInterval(repaintDuration, 10000);
             window.setInterval(checkLoss, 10000);
             startRecTime = Date.now();
