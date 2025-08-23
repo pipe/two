@@ -492,8 +492,6 @@
             them.srcObject = stream;
             them.oncanplay = (e) => {
                 console.log("media can play, so we are playing...")
-                them.play();
-                them.muted = false;
                 mangleMe(them);
             };
         }
@@ -578,7 +576,8 @@
 function setupAudio() {
 
     var gumConstraints = {audio: true, video: true};
-
+    let them = document.getElementById("them");
+    them.muted = false;
     var promise = new Promise(function (resolve, reject) {
         navigator.mediaDevices.getUserMedia(gumConstraints)
             .then((stream) => {
