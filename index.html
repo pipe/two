@@ -478,32 +478,36 @@
             }
         }
     }
-    // called when webRTC presents us with a fresh remote audio/video stream
-function addStream(stream,kind) {
-    if (!kind) {
-        kind = "audio/video";
-    }
-    $("#status").text("Call connected. Tap video to enlarge");
+    // called when webRTC presents us with a fresh remote audio/video track
+    function addTrack(track) {
+        $("#status").text("Call connected. Tap video to enlarge");
 
-    console.log("got new stream" + stream + " kind =" + kind);
-    var them = document.getElementById("them");
-    them.srcObject = stream;
-    them.onloadedmetadata = function(e) {
-        them.play();
-        them.muted = false;
-        mangleMe(them);
-    };
-    if (kind ==="video") {
-        statsTick = window.setInterval(repaintDuration, 10000);
-        window.setInterval(checkLoss, 10000);
-        startRecTime = Date.now();
-        //$("#chosenAction").show();
-        $("#statsZone").show();
-        var act = $("#fullScreen");
-        act.click(_ => toggleFs());
-    }
+        var stream;
+        console.log("got new track" + track + " kind =" + track.kind);
+        var them = document.getElementById("them");
+        if (them.srcObject){
+            stream = them.srcObject;
+        } else {
+            stream = new MediaStream();
+            them.srcObject = stream;
+        }
+        stream.addTrack(track);
+        them.onloadedmetadata = function(e) {
+            them.play();
+            them.muted = false;
+            mangleMe(them);
+        };
+        if (track.kind ==="video") {
+            statsTick = window.setInterval(repaintDuration, 10000);
+            window.setInterval(checkLoss, 10000);
+            startRecTime = Date.now();
+            //$("#chosenAction").show();
+            $("#statsZone").show();
+            var act = $("#fullScreen");
+            act.click(_ => toggleFs());
+        }
 
-}
+    }
 
     // configure local peerconnection and handlers
     function setupRTC(){
@@ -542,22 +546,12 @@ function addStream(stream,kind) {
                 socket.close();
             }
         };
-        // specification of WEBRTC is in flux - so we test to see if ontrack callback exists
-        if ('ontrack' in pc) {
-            // if so we use it
-            pc.ontrack = (event) => {
-                var stream = event.streams[0];
-                console.log("got remote track ", event.track.kind);
-                addStream(stream,event.track.kind);
-            };
-        } else {
-            // if not we use add stream instead
-            pc.onaddstream = (event) => {
-                var stream = event.stream;
-                console.log("got remote stream ", stream.kind);
-                addStream(stream);
-            }
-        }
+
+        pc.ontrack = (event) => {
+            console.log("got remote track ", event.track.kind);
+            addTrack(event.track);
+        };
+
 
         // use this to determine the state of the 'hangup' button and send any candidates we found quickly
         pc.onsignalingstatechange = (evt) => {
@@ -590,15 +584,12 @@ function setupAudio() {
                 console.log("add local stream");
                 var me = document.getElementById("me");
                 me.srcObject = stream;
-                if (pc.addTrack) {
-                    stream.getTracks().forEach(track => {
-                        pc.addTrack(track, stream);
-                        console.log("added local track ", track.id, track.kind);
-                    });
-                } else {
-                    pc.addStream(stream);
-                    console.log("added local stream");
-                }
+
+                stream.getTracks().forEach(track => {
+                    pc.addTrack(track, stream);
+                    console.log("added local track ", track.id, track.kind);
+                });
+
                 resolve(false);
             })
             .catch((e) => {
