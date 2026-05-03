@@ -574,7 +574,7 @@
 
     // plumb the local audio together.
 function setupAudio() {
-
+    let maxBitrateInBitsPerSecond = {audio: 33000, video: 10000000};
     var gumConstraints = {audio: true, video: true};
     let them = document.getElementById("them");
     them.muted = false;
@@ -590,7 +590,15 @@ function setupAudio() {
                     // don't want audio here...
                 }
                 stream.getTracks().forEach(track => {
-                    pc.addTrack(track, stream);
+                    let sender = pc.addTrack(track, stream);
+                    const parameters = sender.getParameters()
+                    if (!parameters.encodings) {
+                        parameters.encodings = [{}]
+                    }
+                    parameters.encodings[0].maxBitrate = maxBitrateInBitsPerSecond[track.kind]
+                    sender.setParameters(parameters).then(() => {
+                        console.log('Bitrate changed successfuly');
+                    }).catch(e => console.error(e))
                     console.log("added local track ", track.id, track.kind);
                 });
 
